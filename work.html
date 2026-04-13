@@ -240,12 +240,13 @@
   }
 
   // 메인 루프
-  let lastTime = 0;
+  let lastTime = -1;
   let animAccum = 0;
   let msgTimer = 0;
 
   function update(timestamp) {
-    const dt = timestamp - lastTime;
+    if (lastTime < 0) { lastTime = timestamp; }
+    const dt = Math.min(timestamp - lastTime, 100); // 최대 100ms로 제한
     lastTime = timestamp;
     animAccum += dt;
     msgTimer += dt;

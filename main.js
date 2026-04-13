@@ -176,6 +176,7 @@ function createWorkWindow() {
 
   workWin.loadFile('work.html');
   workWin.setIgnoreMouseEvents(false);
+  workWin.setAlwaysOnTop(true, 'screen-saver');
 
   // 화면 정보 전달 + 업데이트 체크
   workWin.webContents.on('did-finish-load', () => {
