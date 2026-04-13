@@ -14,7 +14,6 @@
     overflow: hidden;
   }
 
-  /* 타이틀바 */
   .titlebar {
     height: 32px;
     background: #1a1a2e;
@@ -26,167 +25,106 @@
     user-select: none;
     z-index: 100;
   }
-  .titlebar-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-  }
+  .titlebar-left { display: flex; align-items: center; gap: 8px; font-size: 12px; }
   .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #f39c12; }
-  .titlebar-buttons {
-    display: flex;
-    gap: 2px;
-    -webkit-app-region: no-drag;
-  }
+  .titlebar-buttons { display: flex; gap: 2px; -webkit-app-region: no-drag; }
   .titlebar-buttons button {
-    width: 28px; height: 28px; border: none;
-    background: transparent; color: #ecf0f1;
-    font-size: 13px; border-radius: 4px; cursor: pointer;
+    width: 28px; height: 28px; border: none; background: transparent;
+    color: #ecf0f1; font-size: 13px; border-radius: 4px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .titlebar-buttons button:hover { background: rgba(255,255,255,0.1); }
   .titlebar-buttons .close:hover { background: #e74c3c; }
 
-  /* 메인 레이아웃 */
-  .main {
-    display: flex;
-    height: calc(100% - 32px);
-  }
+  .main { display: flex; height: calc(100% - 32px); }
 
-  /* 맵 영역 */
-  .map-area {
-    flex: 1;
-    position: relative;
-    overflow: hidden;
-    background: #222;
-  }
-  #mapCanvas {
-    position: absolute;
-    image-rendering: pixelated;
-  }
+  /* 맵 */
+  .map-area { flex: 1; position: relative; overflow: hidden; background: #222; }
+  #mapCanvas { position: absolute; image-rendering: pixelated; }
 
-  /* 온라인 유저 수 */
   .online-badge {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-    background: rgba(0,0,0,0.6);
-    padding: 4px 10px;
-    border-radius: 10px;
-    font-size: 11px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 10px;
+    font-size: 11px; z-index: 10; display: flex; align-items: center; gap: 6px;
   }
   .online-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: #27ae60; }
 
-  /* 채팅 패널 */
-  .chat-panel {
+  /* 우측 패널 */
+  .side-panel {
     width: 260px;
     background: #1a1a2e;
     display: flex;
     flex-direction: column;
     border-left: 1px solid #333;
   }
-  .chat-header {
-    padding: 10px 14px;
-    font-size: 13px;
-    font-weight: 600;
-    border-bottom: 1px solid #333;
-  }
-  .chat-messages {
-    flex: 1;
-    overflow-y: auto;
+
+  /* 상태 선택 */
+  .status-bar {
     padding: 8px 10px;
+    border-bottom: 1px solid #333;
     display: flex;
-    flex-direction: column;
-    gap: 6px;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .status-btn {
+    padding: 4px 8px;
+    border: 1px solid #333;
+    border-radius: 12px;
+    background: transparent;
+    color: #aaa;
+    font-size: 10px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .status-btn:hover { border-color: #3498db; color: #ecf0f1; }
+  .status-btn.active { background: #3498db; border-color: #3498db; color: white; }
+
+  /* 채팅 */
+  .chat-header { padding: 8px 14px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #333; }
+  .chat-messages {
+    flex: 1; overflow-y: auto; padding: 8px 10px;
+    display: flex; flex-direction: column; gap: 6px;
   }
   .chat-messages::-webkit-scrollbar { width: 3px; }
   .chat-messages::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
-
-  .msg {
-    font-size: 12px;
-    line-height: 1.4;
-  }
-  .msg .name {
-    font-weight: 600;
-    color: #3498db;
-  }
+  .msg { font-size: 12px; line-height: 1.4; }
+  .msg .name { font-weight: 600; color: #3498db; }
   .msg .text { color: #ccc; }
-  .msg-system {
-    font-size: 11px;
-    color: #666;
-    text-align: center;
-    padding: 2px;
-  }
+  .msg-system { font-size: 11px; color: #666; text-align: center; padding: 2px; }
 
-  .chat-input-area {
-    padding: 8px 10px;
-    border-top: 1px solid #333;
-    display: flex;
-    gap: 6px;
-  }
+  .chat-input-area { padding: 8px 10px; border-top: 1px solid #333; display: flex; gap: 6px; }
   .chat-input {
-    flex: 1;
-    background: #16213e;
-    border: 1px solid #333;
-    border-radius: 6px;
-    padding: 6px 10px;
-    color: #ecf0f1;
-    font-size: 12px;
-    outline: none;
+    flex: 1; background: #16213e; border: 1px solid #333; border-radius: 6px;
+    padding: 6px 10px; color: #ecf0f1; font-size: 12px; outline: none;
   }
   .chat-input:focus { border-color: #3498db; }
   .chat-input::placeholder { color: #555; }
   .chat-send {
-    background: #3498db;
-    border: none;
-    border-radius: 6px;
-    color: white;
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
+    background: #3498db; border: none; border-radius: 6px; color: white;
+    padding: 6px 12px; cursor: pointer; font-size: 12px; font-weight: 600; flex-shrink: 0;
   }
   .chat-send:hover { background: #2980b9; }
 
   /* 하단 바 */
   .bottom-bar {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 260px;
-    height: 36px;
-    background: rgba(0,0,0,0.7);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 8px;
-    z-index: 10;
-    white-space: nowrap;
-    gap: 8px;
+    position: absolute; bottom: 0; left: 0; right: 260px; height: 36px;
+    background: rgba(0,0,0,0.7); display: flex; align-items: center;
+    justify-content: space-between; padding: 0 8px; z-index: 10;
+    white-space: nowrap; gap: 8px;
   }
-  .bottom-bar .info {
-    font-size: 10px;
-    opacity: 0.5;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+  .bottom-bar .info { font-size: 10px; opacity: 0.5; overflow: hidden; text-overflow: ellipsis; }
   .back-btn {
-    background: #27ae60;
-    border: none;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    font-size: 11px;
-    font-weight: 600;
+    background: #27ae60; border: none; color: white; padding: 5px 10px;
+    border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: 600;
+    white-space: nowrap; flex-shrink: 0;
   }
   .back-btn:hover { background: #2ecc71; }
+
+  /* 구역 라벨 */
+  .zone-label {
+    position: absolute; font-size: 9px; color: rgba(255,255,255,0.3);
+    pointer-events: none; z-index: 5; font-weight: 600;
+  }
 </style>
 </head>
 <body>
@@ -194,7 +132,7 @@
 <div class="titlebar">
   <div class="titlebar-left">
     <span class="status-dot"></span>
-    <span>Fit Character - 휴식 중</span>
+    <span>Fit Character - 라운지</span>
   </div>
   <div class="titlebar-buttons">
     <button id="btnMinimize">─</button>
@@ -210,7 +148,7 @@
       <span id="onlineCount">접속 중...</span>
     </div>
     <div class="bottom-bar">
-      <span class="info">Enter: 채팅 / 방향키: 수동 이동</span>
+      <span class="info">Enter: 채팅 / 방향키: 이동</span>
       <div style="display:flex;gap:6px;">
         <button class="back-btn" id="btnWork">일하기 모드</button>
         <button class="back-btn" id="btnQuit" style="background:#e74c3c;">종료</button>
@@ -218,7 +156,15 @@
     </div>
   </div>
 
-  <div class="chat-panel">
+  <div class="side-panel">
+    <!-- 상태 선택 -->
+    <div class="status-bar">
+      <button class="status-btn active" data-status="휴식 중">☕ 휴식 중</button>
+      <button class="status-btn" data-status="회의 중">📋 회의 중</button>
+      <button class="status-btn" data-status="점심시간">🍚 점심시간</button>
+      <button class="status-btn" data-status="자리비움">🚶 자리비움</button>
+    </div>
+
     <div class="chat-header">채팅</div>
     <div class="chat-messages" id="chatMessages">
       <div class="msg-system">라운지에 입장했습니다</div>
@@ -232,291 +178,216 @@
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-// ── 서버 URL (Railway 배포 후 변경) ──
 const SERVER_URL = 'https://web-production-3efa6.up.railway.app';
 
-// ── 타일맵 설정 ──
+// ══════════════════════════════════════
+// 타일맵 (32x22 = 1024x704)
+// ══════════════════════════════════════
 const TILE = 32;
-const MAP_COLS = 25;
-const MAP_ROWS = 18;
+const MAP_COLS = 32;
+const MAP_ROWS = 22;
 const MAP_W = MAP_COLS * TILE;
 const MAP_H = MAP_ROWS * TILE;
 
-// 타일 타입
 const T = {
-  FLOOR: 0,       // 나무 바닥
-  WALL_TOP: 1,    // 윗벽
-  WALL_LEFT: 2,   // 왼벽
-  DESK: 3,        // 책상
-  CHAIR: 4,       // 의자
-  MONITOR: 5,     // 모니터
-  SOFA: 6,        // 소파
-  TABLE: 7,       // 테이블
-  BOOKSHELF: 8,   // 책장
-  PLANT: 9,       // 화분
-  COFFEE: 10,     // 커피머신
-  RUG: 11,        // 카펫
-  WALL_RIGHT: 12, // 오른벽
-  WALL_BOT: 13,   // 아랫벽
-  CLOCK: 14,      // 시계(벽)
-  WHITEBOARD: 15, // 화이트보드(벽)
+  FLOOR: 0, WALL_TOP: 1, WALL_LEFT: 2, DESK: 3, CHAIR: 4, MONITOR: 5,
+  SOFA: 6, TABLE: 7, BOOKSHELF: 8, PLANT: 9, COFFEE: 10, RUG: 11,
+  WALL_RIGHT: 12, WALL_BOT: 13, WHITEBOARD: 15,
+  TILE_FLOOR: 16,   // 타일 바닥 (회의실/카페)
+  VENDING: 17,       // 자판기
+  COUNTER: 18,       // 카운터
+  DIVIDER: 19,       // 칸막이
 };
 
-// 충돌 체크용: 못 지나가는 타일
-const SOLID = new Set([T.WALL_TOP, T.WALL_LEFT, T.WALL_RIGHT, T.WALL_BOT, T.DESK, T.MONITOR, T.SOFA, T.TABLE, T.BOOKSHELF, T.COFFEE, T.CLOCK, T.WHITEBOARD]);
+const SOLID = new Set([T.WALL_TOP, T.WALL_LEFT, T.WALL_RIGHT, T.WALL_BOT,
+  T.DESK, T.MONITOR, T.SOFA, T.TABLE, T.BOOKSHELF, T.COFFEE,
+  T.WHITEBOARD, T.VENDING, T.COUNTER, T.DIVIDER]);
 
-// 사무실 맵 (25x18)
+// 맵 레이아웃 (32x22)
+// 좌측: 업무 구역 | 중앙: 복도+라운지 | 우상: 회의실 | 우하: 카페/휴게실
+const _ = T.FLOOR, W = T.WALL_TOP, L = T.WALL_LEFT, R = T.WALL_RIGHT, B = T.WALL_BOT;
+const D = T.DESK, C = T.CHAIR, M = T.MONITOR, S = T.SOFA, TB = T.TABLE;
+const BK = T.BOOKSHELF, P = T.PLANT, CF = T.COFFEE, RG = T.RUG, WB = T.WHITEBOARD;
+const TF = T.TILE_FLOOR, VD = T.VENDING, CT = T.COUNTER, DV = T.DIVIDER;
+
 const MAP = [
-//  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
-  [ 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // 0
-  [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,12], // 1
-  [ 2, 0, 5, 5, 0, 0, 5, 5, 0, 0, 0, 0,15, 0, 0, 0, 0, 0, 8, 8, 8, 0, 0, 0,12], // 2
-  [ 2, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,10, 0,12], // 3
-  [ 2, 0, 4, 4, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,12], // 4
-  [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0,12], // 5
-  [ 2, 0, 5, 5, 0, 0, 5, 5, 0, 0, 0, 0, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0,12], // 6
-  [ 2, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0,12], // 7
-  [ 2, 0, 4, 4, 0, 0, 4, 4, 0, 0, 0, 4, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0,12], // 8
-  [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 9, 0,12], // 9
-  [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,11,11,11,11,11, 0,12], // 10
-  [ 2, 0, 5, 5, 0, 0, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0,11, 6, 6, 6,11, 0,12], // 11
-  [ 2, 0, 3, 3, 0, 0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,11, 0, 7, 0,11, 0,12], // 12
-  [ 2, 0, 4, 4, 0, 0, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,11, 6, 6, 6,11, 0,12], // 13
-  [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,11,11,11,11,11, 0,12], // 14
-  [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0,12], // 15
-  [ 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,12], // 16
-  [13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13], // 17
+// 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
+  [W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W], // 0
+  [L, _, _, _, _, _, _, _, _, _, _,DV, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 1
+  [L, _, M, M, _, _, M, M, _, _, _,DV, _, _, _, _, _, _, _,DV, _,TF,WB,TF,TF,TF,TF,TF,WB,TF, _,R], // 2
+  [L, _, D, D, _, _, D, D, _, _, _,DV, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 3
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF, C,TF,TF, C,TF,TF,TF, _,R], // 4
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, P, _, _, _, _, _, _,TF,TB,TB,TB,TB,TB,TB,TF,TF, _,R], // 5
+  [L, _, M, M, _, _, M, M, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF, C,TF,TF, C,TF,TF,TF, _,R], // 6
+  [L, _, D, D, _, _, D, D, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 7
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 8
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 9
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 10
+  [L, _, M, M, _, _, M, M, _, P, _, _, _, _, _, _, _, _, _,DV, _,TF, S, S, _,TF,TF, _, S, S, _,R], // 11
+  [L, _, D, D, _, _, D, D, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TB,TF,TF,TB,TF,TF, _,R], // 12
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF, S, S, _,TF,TF, _, S, S, _,R], // 13
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 14
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,RG,RG,RG,RG,RG,RG, _, _, _,R], // 15
+  [L, _, _, _, _, _, _, _, _, _, P, _, _, VD,VD, _, _, _, _, _, _, _,RG, P, _,CT,CT,CT, _, _, _,R], // 16
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,RG, _, _, _, CF, _, _, _, _,R], // 17
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 18
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 19
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 20
+  [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B], // 21
 ];
 
-// ── 타일 색상 ──
-const TILE_COLORS = {
-  [T.FLOOR]:      '#b5894e',
-  [T.WALL_TOP]:   '#5a5a6e',
-  [T.WALL_LEFT]:  '#4a4a5e',
-  [T.WALL_RIGHT]: '#4a4a5e',
-  [T.WALL_BOT]:   '#5a5a6e',
-  [T.DESK]:       '#6b4226',
-  [T.CHAIR]:      '#333333',
-  [T.MONITOR]:    '#2a2a3a',
-  [T.SOFA]:       '#7b3f7b',
-  [T.TABLE]:      '#8b6b4a',
-  [T.BOOKSHELF]:  '#5a3a1a',
-  [T.PLANT]:      '#2d8a4e',
-  [T.COFFEE]:     '#555555',
-  [T.RUG]:        '#c4a882',
-  [T.CLOCK]:      '#5a5a6e',
-  [T.WHITEBOARD]: '#5a5a6e',
+// ══════════════════════════════════════
+// 구역 정의 (상태별 이동 목표)
+// ══════════════════════════════════════
+const ZONES = {
+  '업무 중':   { minC: 1,  minR: 1,  maxC: 9,  maxR: 14, label: '업무 구역' },
+  '회의 중':   { minC: 21, minR: 1,  maxC: 30, maxR: 7,  label: '회의실' },
+  '휴식 중':   { minC: 10, minR: 1,  maxC: 19, maxR: 20, label: '라운지' },
+  '점심시간':  { minC: 21, minR: 10, maxC: 30, maxR: 17, label: '카페' },
+  '자리비움':  null, // 이동 안 함
 };
 
-// ── 캔버스 ──
+function getZoneTarget(status) {
+  const zone = ZONES[status];
+  if (!zone) return null;
+  // 구역 내 랜덤 바닥 타일 찾기
+  for (let tries = 0; tries < 80; tries++) {
+    const c = zone.minC + Math.floor(Math.random() * (zone.maxC - zone.minC));
+    const r = zone.minR + Math.floor(Math.random() * (zone.maxR - zone.minR));
+    if (r >= 0 && r < MAP_ROWS && c >= 0 && c < MAP_COLS && !SOLID.has(MAP[r][c])) {
+      return { x: c * TILE + 2, y: r * TILE - 10 };
+    }
+  }
+  return null;
+}
+
+// ══════════════════════════════════════
+// 캔버스 & 타일 그리기
+// ══════════════════════════════════════
 const canvas = document.getElementById('mapCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = MAP_W;
 canvas.height = MAP_H;
 
-// ── 타일 그리기 (디테일 추가) ──
 function drawTile(col, row) {
-  const x = col * TILE;
-  const y = row * TILE;
+  const x = col * TILE, y = row * TILE;
   const type = MAP[row][col];
 
-  // 바닥 먼저
-  ctx.fillStyle = TILE_COLORS[T.FLOOR];
+  // 기본 바닥
+  ctx.fillStyle = '#b5894e';
   ctx.fillRect(x, y, TILE, TILE);
-
-  // 나무 바닥 패턴
-  if (type === T.FLOOR || type === T.RUG || type === T.CHAIR) {
-    ctx.strokeStyle = '#a57a3e';
-    ctx.lineWidth = 0.5;
-    if (col % 2 === 0) {
-      ctx.beginPath();
-      ctx.moveTo(x + TILE/2, y);
-      ctx.lineTo(x + TILE/2, y + TILE);
-      ctx.stroke();
-    }
+  if (type === T.FLOOR || type === T.CHAIR) {
+    ctx.strokeStyle = '#a57a3e'; ctx.lineWidth = 0.5;
+    if (col % 2 === 0) { ctx.beginPath(); ctx.moveTo(x+TILE/2,y); ctx.lineTo(x+TILE/2,y+TILE); ctx.stroke(); }
   }
 
   switch (type) {
     case T.WALL_TOP:
-      ctx.fillStyle = '#5a5a6e';
-      ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#6a6a7e';
-      ctx.fillRect(x, y + TILE - 4, TILE, 4);
-      break;
-
+      ctx.fillStyle = '#5a5a6e'; ctx.fillRect(x,y,TILE,TILE);
+      ctx.fillStyle = '#6a6a7e'; ctx.fillRect(x,y+TILE-4,TILE,4); break;
     case T.WALL_LEFT:
-      ctx.fillStyle = '#4a4a5e';
-      ctx.fillRect(x, y, 6, TILE);
-      break;
-
+      ctx.fillStyle = '#4a4a5e'; ctx.fillRect(x,y,6,TILE); break;
     case T.WALL_RIGHT:
-      ctx.fillStyle = '#4a4a5e';
-      ctx.fillRect(x + TILE - 6, y, 6, TILE);
-      break;
-
+      ctx.fillStyle = '#4a4a5e'; ctx.fillRect(x+TILE-6,y,6,TILE); break;
     case T.WALL_BOT:
-      ctx.fillStyle = '#5a5a6e';
-      ctx.fillRect(x, y, TILE, 4);
-      break;
-
+      ctx.fillStyle = '#5a5a6e'; ctx.fillRect(x,y,TILE,4); break;
+    case T.TILE_FLOOR:
+      ctx.fillStyle = '#8a9aaa'; ctx.fillRect(x,y,TILE,TILE);
+      ctx.strokeStyle = '#7a8a9a'; ctx.lineWidth = 0.5;
+      ctx.strokeRect(x+1,y+1,TILE-2,TILE-2); break;
     case T.DESK:
-      ctx.fillStyle = '#6b4226';
-      ctx.fillRect(x + 2, y + 4, TILE - 4, TILE - 8);
-      ctx.fillStyle = '#7d5030';
-      ctx.fillRect(x + 2, y + 4, TILE - 4, 3);
-      break;
-
+      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+2,y+4,TILE-4,TILE-8);
+      ctx.fillStyle = '#7d5030'; ctx.fillRect(x+2,y+4,TILE-4,3); break;
     case T.MONITOR:
-      // 책상 위 모니터
-      ctx.fillStyle = '#6b4226';
-      ctx.fillRect(x + 2, y + 10, TILE - 4, TILE - 12);
-      ctx.fillStyle = '#1a1a2e';
-      ctx.fillRect(x + 6, y + 2, TILE - 12, 14);
-      ctx.fillStyle = '#3498db';
-      ctx.fillRect(x + 8, y + 4, TILE - 16, 10);
-      // 화면 반짝임
-      ctx.fillStyle = 'rgba(255,255,255,0.15)';
-      ctx.fillRect(x + 9, y + 5, 4, 3);
-      break;
-
+      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+2,y+10,TILE-4,TILE-12);
+      ctx.fillStyle = '#1a1a2e'; ctx.fillRect(x+6,y+2,TILE-12,14);
+      ctx.fillStyle = '#3498db'; ctx.fillRect(x+8,y+4,TILE-16,10);
+      ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(x+9,y+5,4,3); break;
     case T.CHAIR:
-      ctx.fillStyle = '#2a2a2a';
-      ctx.fillRect(x + 8, y + 8, TILE - 16, TILE - 12);
-      ctx.fillStyle = '#333';
-      ctx.fillRect(x + 10, y + 6, TILE - 20, 4);
-      break;
-
+      ctx.fillStyle = '#2a2a2a'; ctx.fillRect(x+8,y+8,TILE-16,TILE-12);
+      ctx.fillStyle = '#333'; ctx.fillRect(x+10,y+6,TILE-20,4); break;
     case T.SOFA:
-      ctx.fillStyle = '#7b3f7b';
-      ctx.fillRect(x + 2, y + 4, TILE - 4, TILE - 6);
-      ctx.fillStyle = '#9b5f9b';
-      ctx.fillRect(x + 4, y + 6, TILE - 8, TILE - 12);
-      break;
-
+      ctx.fillStyle = '#7b3f7b'; ctx.fillRect(x+2,y+4,TILE-4,TILE-6);
+      ctx.fillStyle = '#9b5f9b'; ctx.fillRect(x+4,y+6,TILE-8,TILE-12); break;
     case T.TABLE:
-      ctx.fillStyle = '#8b6b4a';
-      ctx.fillRect(x + 2, y + 6, TILE - 4, TILE - 12);
-      ctx.fillStyle = '#9b7b5a';
-      ctx.fillRect(x + 2, y + 6, TILE - 4, 3);
-      break;
-
+      ctx.fillStyle = '#8b6b4a'; ctx.fillRect(x+2,y+6,TILE-4,TILE-12);
+      ctx.fillStyle = '#9b7b5a'; ctx.fillRect(x+2,y+6,TILE-4,3); break;
     case T.BOOKSHELF:
-      ctx.fillStyle = '#5a3a1a';
-      ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
-      // 책들
-      const bookColors = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6'];
-      for (let i = 0; i < 4; i++) {
-        ctx.fillStyle = bookColors[i % bookColors.length];
-        ctx.fillRect(x + 5 + i * 5, y + 5, 4, 10);
-        ctx.fillStyle = bookColors[(i+2) % bookColors.length];
-        ctx.fillRect(x + 5 + i * 5, y + 18, 4, 8);
-      }
-      break;
-
+      ctx.fillStyle = '#5a3a1a'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+      ['#e74c3c','#3498db','#2ecc71','#f39c12'].forEach((c,i) => {
+        ctx.fillStyle = c; ctx.fillRect(x+5+i*5,y+5,4,10);
+        ctx.fillRect(x+5+i*5,y+18,4,8);
+      }); break;
     case T.PLANT:
-      // 화분
-      ctx.fillStyle = '#8b5e3c';
-      ctx.fillRect(x + 10, y + 20, 12, 10);
-      ctx.fillStyle = '#2d8a4e';
-      ctx.beginPath();
-      ctx.arc(x + 16, y + 14, 10, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#3ca85e';
-      ctx.beginPath();
-      ctx.arc(x + 13, y + 12, 6, 0, Math.PI * 2);
-      ctx.fill();
-      break;
-
+      ctx.fillStyle = '#8b5e3c'; ctx.fillRect(x+10,y+20,12,10);
+      ctx.fillStyle = '#2d8a4e'; ctx.beginPath(); ctx.arc(x+16,y+14,10,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#3ca85e'; ctx.beginPath(); ctx.arc(x+13,y+12,6,0,Math.PI*2); ctx.fill(); break;
     case T.COFFEE:
-      ctx.fillStyle = '#555';
-      ctx.fillRect(x + 4, y + 2, TILE - 8, TILE - 4);
-      ctx.fillStyle = '#666';
-      ctx.fillRect(x + 6, y + 4, TILE - 12, 8);
-      // 컵
-      ctx.fillStyle = '#ddd';
-      ctx.fillRect(x + 12, y + 20, 8, 8);
-      ctx.fillStyle = '#6b4226';
-      ctx.fillRect(x + 13, y + 21, 6, 5);
-      break;
-
+      ctx.fillStyle = '#555'; ctx.fillRect(x+4,y+2,TILE-8,TILE-4);
+      ctx.fillStyle = '#ddd'; ctx.fillRect(x+12,y+20,8,8);
+      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+13,y+21,6,5); break;
     case T.RUG:
-      ctx.fillStyle = '#c4a882';
-      ctx.fillRect(x, y, TILE, TILE);
-      ctx.strokeStyle = '#b09872';
-      ctx.lineWidth = 1;
-      ctx.strokeRect(x + 1, y + 1, TILE - 2, TILE - 2);
-      break;
-
+      ctx.fillStyle = '#c4a882'; ctx.fillRect(x,y,TILE,TILE);
+      ctx.strokeStyle = '#b09872'; ctx.lineWidth = 1; ctx.strokeRect(x+1,y+1,TILE-2,TILE-2); break;
     case T.WHITEBOARD:
-      ctx.fillStyle = '#5a5a6e';
-      ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#ddd';
-      ctx.fillRect(x + 4, y + TILE - 10, TILE - 8, 8);
-      break;
-
-    case T.CLOCK:
-      ctx.fillStyle = '#5a5a6e';
-      ctx.fillRect(x, y, TILE, TILE);
-      ctx.fillStyle = '#ddd';
-      ctx.beginPath();
-      ctx.arc(x + TILE/2, y + TILE/2 + 4, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#333';
-      ctx.beginPath();
-      ctx.arc(x + TILE/2, y + TILE/2 + 4, 6, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x + TILE/2, y + TILE/2 + 4);
-      ctx.lineTo(x + TILE/2, y + TILE/2 - 1);
-      ctx.moveTo(x + TILE/2, y + TILE/2 + 4);
-      ctx.lineTo(x + TILE/2 + 4, y + TILE/2 + 4);
-      ctx.stroke();
-      break;
+      ctx.fillStyle = (row === 0 || MAP[row-1]?.[col] === T.WALL_TOP) ? '#5a5a6e' : '#8a9aaa';
+      ctx.fillRect(x,y,TILE,TILE);
+      ctx.fillStyle = '#ddd'; ctx.fillRect(x+4,y+TILE-10,TILE-8,8); break;
+    case T.VENDING:
+      ctx.fillStyle = '#444'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
+      ctx.fillStyle = '#e74c3c'; ctx.fillRect(x+6,y+6,TILE-12,12);
+      ctx.fillStyle = '#3498db'; ctx.fillRect(x+6,y+20,TILE-12,6); break;
+    case T.COUNTER:
+      ctx.fillStyle = '#8b6b4a'; ctx.fillRect(x,y+4,TILE,TILE-8);
+      ctx.fillStyle = '#9b7b5a'; ctx.fillRect(x,y+4,TILE,4); break;
+    case T.DIVIDER:
+      ctx.fillStyle = '#6a6a7a'; ctx.fillRect(x+13,y,6,TILE); break;
   }
 }
 
-// 전체 맵 그리기
+// 구역 라벨 그리기
+function drawZoneLabels() {
+  ctx.font = 'bold 11px Segoe UI';
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.textAlign = 'center';
+  ctx.fillText('업무 구역', 5*TILE, 16*TILE+20);
+  ctx.fillText('회의실', 25.5*TILE, 1*TILE-4);
+  ctx.fillText('카페 / 휴게실', 25.5*TILE, 10*TILE-4);
+  ctx.fillText('라운지', 14.5*TILE, 1*TILE-4);
+}
+
 function drawMap() {
-  for (let r = 0; r < MAP_ROWS; r++) {
-    for (let c = 0; c < MAP_COLS; c++) {
+  for (let r = 0; r < MAP_ROWS; r++)
+    for (let c = 0; c < MAP_COLS; c++)
       drawTile(c, r);
-    }
-  }
+  drawZoneLabels();
 }
 
-// ── 캐릭터 스프라이트 ──
-const FRAME_W = 64, FRAME_H = 96;
-const CHAR_W = 28, CHAR_H = 42; // 맵 위 캐릭터 크기
-const COLS = 4;
+// ══════════════════════════════════════
+// 캐릭터 스프라이트
+// ══════════════════════════════════════
+const FRAME_W = 64, FRAME_H = 96, CHAR_W = 28, CHAR_H = 42, COLS = 4;
 const ROW_MAP = { front: 0, back: 1, left: 2, right: 3 };
 const IDLE_FRAME = { 0: 0, 1: 0, 2: 0, 3: 1 };
+const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
 
-let mySpriteImg = null;
-let myProfile = null;
-let myX = 320, myY = 288;
-let myDir = 'front';
-let myWalking = false;
-let myFrameIndex = 0;
+let mySpriteImg = null, myProfile = null, originalSVG = '';
+let myX = 450, myY = 320, myDir = 'front', myWalking = false, myFrameIndex = 0;
+let myStatus = '휴식 중';
 const SPEED = 1;
 const keysDown = new Set();
+const peers = new Map(), peerSprites = new Map();
 
-// 다른 유저
-const peers = new Map();
-const peerSprites = new Map();
-
-// ── SVG → 커스텀 색상 적용 이미지 생성 ──
-const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
+// 말풍선 데이터: id → { text, timer }
+const bubbles = new Map();
 
 function createSpriteImage(svgText, colors) {
   return new Promise((resolve) => {
     let svg = svgText;
     if (colors) {
       for (const key of Object.keys(ORIG_COLORS)) {
-        if (colors[key] && colors[key] !== ORIG_COLORS[key]) {
+        if (colors[key] && colors[key] !== ORIG_COLORS[key])
           svg = svg.replaceAll('fill="' + ORIG_COLORS[key] + '"', 'fill="' + colors[key] + '"');
-        }
       }
     }
     const blob = new Blob([svg], { type: 'image/svg+xml' });
@@ -527,14 +398,9 @@ function createSpriteImage(svgText, colors) {
   });
 }
 
-// ── 충돌 체크 ──
 function canMove(nx, ny) {
-  // 캐릭터 히트박스 (발 기준)
-  const footL = Math.floor((nx + 4) / TILE);
-  const footR = Math.floor((nx + CHAR_W - 4) / TILE);
-  const footY = Math.floor((ny + CHAR_H - 2) / TILE);
-  const headY = Math.floor((ny + CHAR_H / 2) / TILE);
-
+  const footL = Math.floor((nx + 4) / TILE), footR = Math.floor((nx + CHAR_W - 4) / TILE);
+  const footY = Math.floor((ny + CHAR_H - 2) / TILE), headY = Math.floor((ny + CHAR_H / 2) / TILE);
   for (const col of [footL, footR]) {
     for (const row of [headY, footY]) {
       if (row < 0 || row >= MAP_ROWS || col < 0 || col >= MAP_COLS) return false;
@@ -544,31 +410,237 @@ function canMove(nx, ny) {
   return true;
 }
 
-// ── 캐릭터 그리기 ──
-function drawCharacter(img, x, y, dir, walking, frameIdx, nickname) {
+// ══════════════════════════════════════
+// 캐릭터 + 말풍선 + 상태 그리기
+// ══════════════════════════════════════
+function drawCharacter(img, x, y, dir, walking, frameIdx, nickname, status, id) {
   const row = ROW_MAP[dir] || 0;
   const col = walking ? (frameIdx % COLS) : IDLE_FRAME[row];
-  const sx = col * FRAME_W;
-  const sy = row * FRAME_H;
-
+  const sx = col * FRAME_W, sy = row * FRAME_H;
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, sx, sy, FRAME_W, FRAME_H, x, y, CHAR_W, CHAR_H);
 
-  // 닉네임
-  if (nickname) {
-    ctx.font = '10px "Segoe UI"';
+  const cx = x + CHAR_W / 2;
+
+  // 말풍선
+  const bubble = bubbles.get(id);
+  if (bubble && bubble.timer > 0) {
+    ctx.font = '9px Segoe UI';
+    const tw = ctx.measureText(bubble.text).width;
+    const bw = tw + 10, bh = 16;
+    const bx = cx - bw / 2, by = y - 32;
+
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.roundRect(bx, by, bw, bh, 4);
+    ctx.fill();
+    // 꼬리
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, by + bh);
+    ctx.lineTo(cx, by + bh + 4);
+    ctx.lineTo(cx + 3, by + bh);
+    ctx.fill();
+
+    ctx.fillStyle = '#333';
     ctx.textAlign = 'center';
+    ctx.fillText(bubble.text, cx, by + 11);
+  }
+
+  // 닉네임 + 상태
+  const label = status && status !== '휴식 중' ? `${nickname} (${status})` : nickname;
+  if (label) {
+    ctx.font = '9px Segoe UI';
+    ctx.textAlign = 'center';
+    const tw2 = ctx.measureText(label).width;
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    const tw = ctx.measureText(nickname).width;
-    ctx.fillRect(x + CHAR_W/2 - tw/2 - 4, y - 14, tw + 8, 14);
+    ctx.fillRect(cx - tw2/2 - 4, y - 14, tw2 + 8, 13);
     ctx.fillStyle = '#fff';
-    ctx.fillText(nickname, x + CHAR_W/2, y - 4);
+    ctx.fillText(label, cx, y - 4);
   }
 }
 
-// ── Socket.io ──
+// ══════════════════════════════════════
+// 자동 이동
+// ══════════════════════════════════════
+let autoTarget = null, autoIdle = 0, autoIdleDuration = 0;
+let goingToDesk = false, sittingAtDesk = false, deskTarget = null;
+let goingToZone = false, zoneTarget = null;
+let manualControl = false;
+
+function pickAutoTarget() {
+  for (let tries = 0; tries < 50; tries++) {
+    const zone = ZONES[myStatus] || ZONES['휴식 중'];
+    if (!zone) { autoTarget = null; return; }
+    const c = zone.minC + Math.floor(Math.random() * (zone.maxC - zone.minC));
+    const r = zone.minR + Math.floor(Math.random() * (zone.maxR - zone.minR));
+    if (canMove(c * TILE + 2, r * TILE - 10)) {
+      autoTarget = { x: c * TILE + 2, y: r * TILE - 10 };
+      return;
+    }
+  }
+  autoTarget = null;
+}
+
+function pickAutoIdle() {
+  autoTarget = null;
+  autoIdle = 0;
+  autoIdleDuration = 120 + Math.floor(Math.random() * 180);
+}
+
+// 좌석 관련
+const SEAT_POSITIONS = [
+  { x: 2*32+2, y: 4*32-10 }, { x: 3*32+2, y: 4*32-10 },
+  { x: 6*32+2, y: 4*32-10 }, { x: 7*32+2, y: 4*32-10 },
+  { x: 2*32+2, y: 8*32-10 }, { x: 3*32+2, y: 8*32-10 },
+  { x: 6*32+2, y: 8*32-10 }, { x: 7*32+2, y: 8*32-10 },
+  { x: 2*32+2, y: 13*32-10 }, { x: 3*32+2, y: 13*32-10 },
+  { x: 6*32+2, y: 13*32-10 }, { x: 7*32+2, y: 13*32-10 },
+];
+
+function findNearestSeat() {
+  const takenSeats = new Set();
+  for (const [, peer] of peers) {
+    if (peer.mode === 'work' && peer.seatIndex >= 0) takenSeats.add(peer.seatIndex);
+  }
+  let bestIdx = -1, bestDist = Infinity;
+  for (let i = 0; i < SEAT_POSITIONS.length; i++) {
+    if (takenSeats.has(i)) continue;
+    const s = SEAT_POSITIONS[i];
+    const d = Math.abs(s.x - myX) + Math.abs(s.y - myY);
+    if (d < bestDist) { bestDist = d; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
+function startGoingToDesk() {
+  const idx = findNearestSeat();
+  if (idx < 0) { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); return; }
+  goingToDesk = true; deskTarget = SEAT_POSITIONS[idx]; autoTarget = null;
+}
+
+function startGoingToZone(status) {
+  const target = getZoneTarget(status);
+  if (!target) return;
+  goingToZone = true;
+  zoneTarget = target;
+  autoTarget = null;
+}
+
+pickAutoTarget();
+
+// ══════════════════════════════════════
+// 게임 루프
+// ══════════════════════════════════════
+let frameCounter = 0, lastMoveEmit = 0;
+
+function gameLoop() {
+  frameCounter++;
+
+  // 말풍선 타이머 감소
+  for (const [id, b] of bubbles) {
+    b.timer--;
+    if (b.timer <= 0) bubbles.delete(id);
+  }
+
+  // 앉아있으면 정지
+  if (sittingAtDesk) {
+    updateCamera(); drawMap();
+    drawPeers();
+    if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, false, 0, myProfile.nickname, myStatus, '__me');
+    return requestAnimationFrame(gameLoop);
+  }
+
+  manualControl = !goingToDesk && !goingToZone && keysDown.size > 0;
+  let dx = 0, dy = 0;
+
+  if (goingToDesk && deskTarget) {
+    const distX = deskTarget.x - myX, distY = deskTarget.y - myY;
+    if (Math.sqrt(distX*distX + distY*distY) < 4) {
+      myX = deskTarget.x; myY = deskTarget.y; myDir = 'back'; myWalking = false;
+      goingToDesk = false; sittingAtDesk = true; deskTarget = null;
+      setTimeout(() => { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); }, 800);
+      return requestAnimationFrame(gameLoop);
+    }
+    dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
+    dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
+  } else if (goingToZone && zoneTarget) {
+    const distX = zoneTarget.x - myX, distY = zoneTarget.y - myY;
+    if (Math.sqrt(distX*distX + distY*distY) < 4) {
+      goingToZone = false; zoneTarget = null; pickAutoIdle();
+    } else {
+      dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
+      dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
+    }
+  } else if (manualControl) {
+    if (keysDown.has('ArrowLeft'))  dx -= SPEED;
+    if (keysDown.has('ArrowRight')) dx += SPEED;
+    if (keysDown.has('ArrowUp'))    dy -= SPEED;
+    if (keysDown.has('ArrowDown'))  dy += SPEED;
+  } else {
+    if (autoTarget) {
+      const distX = autoTarget.x - myX, distY = autoTarget.y - myY;
+      if (Math.sqrt(distX*distX + distY*distY) < SPEED * 2) { pickAutoIdle(); }
+      else { dx = Math.sign(distX)*Math.min(SPEED,Math.abs(distX)); dy = Math.sign(distY)*Math.min(SPEED,Math.abs(distY)); }
+    } else {
+      autoIdle++;
+      if (autoIdle >= autoIdleDuration) pickAutoTarget();
+    }
+  }
+
+  myWalking = (dx !== 0 || dy !== 0);
+  if (dx < 0) myDir = 'left'; else if (dx > 0) myDir = 'right';
+  else if (dy < 0) myDir = 'back'; else if (dy > 0) myDir = 'front';
+
+  const skipCollision = goingToDesk || goingToZone;
+  if (dx !== 0) {
+    if (skipCollision || canMove(myX+dx, myY)) myX += dx;
+    else if (!manualControl && !goingToDesk && !goingToZone) pickAutoTarget();
+  }
+  if (dy !== 0) {
+    if (skipCollision || canMove(myX, myY+dy)) myY += dy;
+    else if (!manualControl && !goingToDesk && !goingToZone) pickAutoTarget();
+  }
+
+  if (frameCounter % 8 === 0 && myWalking) myFrameIndex++;
+
+  if (socket && socket.connected && frameCounter - lastMoveEmit >= 3) {
+    lastMoveEmit = frameCounter;
+    socket.emit('move', { x: myX, y: myY, direction: myDir, isWalking: myWalking });
+  }
+
+  updateCamera(); drawMap(); drawPeers();
+  if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, myWalking, myFrameIndex, myProfile.nickname, myStatus, '__me');
+  requestAnimationFrame(gameLoop);
+}
+
+function drawPeers() {
+  for (const [id, peer] of peers) {
+    const img = peerSprites.get(id);
+    if (!img) continue;
+    const isWorking = (peer.mode === 'work');
+    const walking = isWorking ? false : peer.isWalking;
+    if (walking && frameCounter % 8 === 0) peer._frame = ((peer._frame || 0) + 1);
+    drawCharacter(img, peer.x, peer.y, peer.direction, walking, peer._frame || 0, peer.nickname, peer.status, id);
+  }
+}
+
+// ══════════════════════════════════════
+// 카메라
+// ══════════════════════════════════════
+let camX = 0, camY = 0;
+function updateCamera() {
+  const area = document.getElementById('mapArea');
+  const vw = area.clientWidth, vh = area.clientHeight;
+  camX = Math.max(0, Math.min(myX + CHAR_W/2 - vw/2, MAP_W - vw));
+  camY = Math.max(0, Math.min(myY + CHAR_H/2 - vh/2, MAP_H - vh));
+  canvas.style.left = -camX + 'px';
+  canvas.style.top = -camY + 'px';
+}
+
+// ══════════════════════════════════════
+// Socket.io
+// ══════════════════════════════════════
 let socket = null;
-let originalSVG = '';
 
 async function connectServer() {
   try {
@@ -577,11 +649,8 @@ async function connectServer() {
     socket.on('connect', () => {
       document.getElementById('onlineCount').textContent = '서버 연결됨';
       socket.emit('join', {
-        nickname: myProfile.nickname,
-        colors: myProfile.colors,
-        x: myX,
-        y: myY,
-        mode: 'rest',
+        nickname: myProfile.nickname, colors: myProfile.colors,
+        x: myX, y: myY, mode: 'rest', status: myStatus,
       });
     });
 
@@ -589,62 +658,53 @@ async function connectServer() {
       for (const u of users) {
         if (u.id === socket.id) continue;
         peers.set(u.id, u);
-        if (!peerSprites.has(u.id)) {
-          const img = await createSpriteImage(originalSVG, u.colors);
-          peerSprites.set(u.id, img);
-        }
+        if (!peerSprites.has(u.id)) peerSprites.set(u.id, await createSpriteImage(originalSVG, u.colors));
       }
       updateOnlineCount();
     });
 
     socket.on('user-joined', async (u) => {
       peers.set(u.id, u);
-      const img = await createSpriteImage(originalSVG, u.colors);
-      peerSprites.set(u.id, img);
+      peerSprites.set(u.id, await createSpriteImage(originalSVG, u.colors));
       addSystemMsg(`${u.nickname} 님이 입장했습니다`);
       updateOnlineCount();
     });
 
     socket.on('user-moved', (data) => {
-      const peer = peers.get(data.id);
-      if (peer) {
-        peer.x = data.x;
-        peer.y = data.y;
-        peer.direction = data.direction;
-        peer.isWalking = data.isWalking;
-      }
-    });
-
-    socket.on('user-left', (id) => {
-      const peer = peers.get(id);
-      if (peer) addSystemMsg(`${peer.nickname} 님이 퇴장했습니다`);
-      peers.delete(id);
-      peerSprites.delete(id);
-      updateOnlineCount();
+      const p = peers.get(data.id);
+      if (p) { p.x = data.x; p.y = data.y; p.direction = data.direction; p.isWalking = data.isWalking; }
     });
 
     socket.on('user-mode-changed', (data) => {
-      const peer = peers.get(data.id);
-      if (peer) {
-        peer.mode = data.mode;
-        peer.seatIndex = data.seatIndex;
-        peer.x = data.x;
-        peer.y = data.y;
-        peer.direction = data.direction;
-        peer.isWalking = false;
-        const label = data.mode === 'work' ? '일하는 중' : '휴식 중';
-        addSystemMsg(`${peer.nickname} 님이 ${label} 상태로 변경`);
+      const p = peers.get(data.id);
+      if (p) {
+        p.mode = data.mode; p.seatIndex = data.seatIndex;
+        p.x = data.x; p.y = data.y; p.direction = data.direction; p.isWalking = false;
       }
     });
 
+    socket.on('user-status-changed', (data) => {
+      const p = peers.get(data.id);
+      if (p) { p.status = data.status; }
+      addSystemMsg(`${data.nickname}: ${data.status}`);
+    });
+
+    socket.on('user-left', (id) => {
+      const p = peers.get(id);
+      if (p) addSystemMsg(`${p.nickname} 님이 퇴장했습니다`);
+      peers.delete(id); peerSprites.delete(id); bubbles.delete(id);
+      updateOnlineCount();
+    });
+
     socket.on('chat-history', (history) => {
-      for (const msg of history) {
-        addChatMsg(msg.nickname, msg.message);
-      }
+      for (const msg of history) addChatMsg(msg.nickname, msg.message);
     });
 
     socket.on('chat-message', (data) => {
       addChatMsg(data.nickname, data.message);
+      // 말풍선 표시
+      const id = data.id === socket.id ? '__me' : data.id;
+      bubbles.set(id, { text: data.message.slice(0, 20), timer: 180 }); // ~3초
     });
 
     socket.on('disconnect', () => {
@@ -656,339 +716,77 @@ async function connectServer() {
 }
 
 function updateOnlineCount() {
-  const count = peers.size + 1;
-  document.getElementById('onlineCount').textContent = `${count}명 접속`;
+  document.getElementById('onlineCount').textContent = `${peers.size + 1}명 접속`;
 }
 
-// ── 채팅 ──
+// ══════════════════════════════════════
+// 채팅
+// ══════════════════════════════════════
 const chatMessages = document.getElementById('chatMessages');
-
 function addChatMsg(name, text) {
-  const el = document.createElement('div');
-  el.className = 'msg';
+  const el = document.createElement('div'); el.className = 'msg';
   el.innerHTML = `<span class="name">${name}</span> <span class="text">${text}</span>`;
-  chatMessages.appendChild(el);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  chatMessages.appendChild(el); chatMessages.scrollTop = chatMessages.scrollHeight;
 }
-
 function addSystemMsg(text) {
-  const el = document.createElement('div');
-  el.className = 'msg-system';
-  el.textContent = text;
-  chatMessages.appendChild(el);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+  const el = document.createElement('div'); el.className = 'msg-system'; el.textContent = text;
+  chatMessages.appendChild(el); chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 document.getElementById('chatSend').addEventListener('click', sendChat);
-document.getElementById('chatInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendChat();
-});
-
+document.getElementById('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
 function sendChat() {
   const input = document.getElementById('chatInput');
-  const text = input.value.trim();
-  if (!text) return;
-  if (socket && socket.connected) {
-    socket.emit('chat', text);
-  } else {
-    addChatMsg(myProfile.nickname, text);
-  }
+  const text = input.value.trim(); if (!text) return;
+  if (socket && socket.connected) socket.emit('chat', text);
+  else { addChatMsg(myProfile.nickname, text); bubbles.set('__me', { text: text.slice(0,20), timer: 180 }); }
   input.value = '';
 }
 
-// ── 입력 ──
+// ══════════════════════════════════════
+// 상태 변경
+// ══════════════════════════════════════
+document.querySelectorAll('.status-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    myStatus = btn.dataset.status;
+    if (socket && socket.connected) socket.emit('status-change', myStatus);
+    // 상태에 맞는 구역으로 이동
+    if (myStatus !== '자리비움') startGoingToZone(myStatus);
+  });
+});
+
+// ══════════════════════════════════════
+// 입력
+// ══════════════════════════════════════
 let chatFocused = false;
 document.getElementById('chatInput').addEventListener('focus', () => chatFocused = true);
 document.getElementById('chatInput').addEventListener('blur', () => chatFocused = false);
-
 document.addEventListener('keydown', (e) => {
   if (chatFocused) return;
-  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
-    e.preventDefault();
-    keysDown.add(e.key);
-  }
-  if (e.key === 'Enter') {
-    document.getElementById('chatInput').focus();
-  }
+  if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) { e.preventDefault(); keysDown.add(e.key); }
+  if (e.key === 'Enter') document.getElementById('chatInput').focus();
 });
+document.addEventListener('keyup', (e) => keysDown.delete(e.key));
 
-document.addEventListener('keyup', (e) => {
-  keysDown.delete(e.key);
-});
+// ══════════════════════════════════════
+// 버튼
+// ══════════════════════════════════════
+document.getElementById('btnWork').addEventListener('click', () => { if (!goingToDesk) startGoingToDesk(); });
+document.getElementById('btnClose').addEventListener('click', () => { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); });
+document.getElementById('btnMinimize').addEventListener('click', () => { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); });
+document.getElementById('btnQuit').addEventListener('click', () => { if (socket) socket.disconnect(); window.electronAPI.quitApp(); });
 
-// ── 카메라 ──
-let camX = 0, camY = 0;
-
-function updateCamera() {
-  const area = document.getElementById('mapArea');
-  const vw = area.clientWidth;
-  const vh = area.clientHeight;
-  camX = Math.max(0, Math.min(myX + CHAR_W/2 - vw/2, MAP_W - vw));
-  camY = Math.max(0, Math.min(myY + CHAR_H/2 - vh/2, MAP_H - vh));
-  canvas.style.left = -camX + 'px';
-  canvas.style.top = -camY + 'px';
-}
-
-// ── 자동 이동 (AI 산책) ──
-let autoTarget = null;    // 목표 좌표 { x, y }
-let autoIdle = 0;         // idle 대기 프레임
-let autoIdleDuration = 0;
-let manualControl = false; // 방향키 입력 중이면 true
-
-function pickAutoTarget() {
-  // 바닥 타일 중 랜덤 위치 선택
-  for (let tries = 0; tries < 50; tries++) {
-    const tx = Math.floor(Math.random() * (MAP_COLS - 4) + 2) * TILE;
-    const ty = Math.floor(Math.random() * (MAP_ROWS - 4) + 2) * TILE;
-    if (canMove(tx, ty)) {
-      autoTarget = { x: tx, y: ty };
-      return;
-    }
-  }
-  autoTarget = null;
-}
-
-function pickAutoIdle() {
-  autoTarget = null;
-  autoIdle = 0;
-  autoIdleDuration = 120 + Math.floor(Math.random() * 180); // 2~5초 대기
-}
-
-// 초기 상태
-pickAutoTarget();
-
-// ── 퇴근 이동 (책상으로 걸어가기) ──
-let goingToDesk = false;
-let sittingAtDesk = false;
-let deskTarget = null;
-
-// 좌석 좌표 목록 (서버와 동일)
-const SEAT_POSITIONS = [
-  { x: 2*32+2,  y: 4*32-10 },
-  { x: 3*32+2,  y: 4*32-10 },
-  { x: 6*32+2,  y: 4*32-10 },
-  { x: 7*32+2,  y: 4*32-10 },
-  { x: 2*32+2,  y: 8*32-10 },
-  { x: 3*32+2,  y: 8*32-10 },
-  { x: 6*32+2,  y: 8*32-10 },
-  { x: 7*32+2,  y: 8*32-10 },
-  { x: 2*32+2,  y: 13*32-10 },
-  { x: 3*32+2,  y: 13*32-10 },
-  { x: 6*32+2,  y: 13*32-10 },
-  { x: 7*32+2,  y: 13*32-10 },
-];
-
-function findNearestSeat() {
-  // 다른 유저가 앉아있는 좌석 제외
-  const takenSeats = new Set();
-  for (const [, peer] of peers) {
-    if (peer.mode === 'work' && peer.seatIndex >= 0) {
-      takenSeats.add(peer.seatIndex);
-    }
-  }
-
-  let bestIdx = -1, bestDist = Infinity;
-  for (let i = 0; i < SEAT_POSITIONS.length; i++) {
-    if (takenSeats.has(i)) continue;
-    const s = SEAT_POSITIONS[i];
-    const d = Math.abs(s.x - myX) + Math.abs(s.y - myY);
-    if (d < bestDist) {
-      bestDist = d;
-      bestIdx = i;
-    }
-  }
-  return bestIdx;
-}
-
-function startGoingToDesk() {
-  const idx = findNearestSeat();
-  if (idx < 0) {
-    // 빈 좌석 없으면 바로 전환
-    if (socket) socket.disconnect();
-    window.electronAPI.switchToWork();
-    return;
-  }
-  goingToDesk = true;
-  deskTarget = SEAT_POSITIONS[idx];
-  autoTarget = null; // 자동 이동 중지
-}
-
-// ── 게임 루프 ──
-let frameCounter = 0;
-let lastMoveEmit = 0;
-
-function gameLoop() {
-  frameCounter++;
-
-  // 앉아있으면 이동 안 함
-  if (sittingAtDesk) {
-    updateCamera();
-    drawMap();
-    for (const [id, peer] of peers) {
-      const img = peerSprites.get(id);
-      if (img) {
-        const isWorking = (peer.mode === 'work');
-        const walking = isWorking ? false : peer.isWalking;
-        if (walking && frameCounter % 8 === 0) peer._frame = ((peer._frame || 0) + 1);
-        const label = peer.nickname + (isWorking ? ' (일하는 중)' : '');
-        drawCharacter(img, peer.x, peer.y, peer.direction, walking, peer._frame || 0, label);
-      }
-    }
-    if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, false, 0, myProfile.nickname);
-    return requestAnimationFrame(gameLoop);
-  }
-
-  // 방향키 수동 조작 확인 (책상으로 이동 중이면 무시)
-  manualControl = !goingToDesk && keysDown.size > 0;
-
-  let dx = 0, dy = 0;
-
-  if (goingToDesk && deskTarget) {
-    // 책상으로 걸어가기
-    const distX = deskTarget.x - myX;
-    const distY = deskTarget.y - myY;
-    const dist = Math.sqrt(distX * distX + distY * distY);
-
-    if (dist < 4) {
-      // 도착 → 앉기
-      myX = deskTarget.x;
-      myY = deskTarget.y;
-      myDir = 'back';
-      myWalking = false;
-      goingToDesk = false;
-      sittingAtDesk = true;
-      deskTarget = null;
-      // 잠시 앉은 모습 보여준 후 전환
-      setTimeout(() => {
-        if (socket) socket.disconnect();
-        window.electronAPI.switchToWork();
-      }, 800);
-      return requestAnimationFrame(gameLoop);
-    } else {
-      dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
-      dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
-    }
-  } else if (manualControl) {
-    // 수동 조작
-    if (keysDown.has('ArrowLeft'))  dx -= SPEED;
-    if (keysDown.has('ArrowRight')) dx += SPEED;
-    if (keysDown.has('ArrowUp'))    dy -= SPEED;
-    if (keysDown.has('ArrowDown'))  dy += SPEED;
-  } else {
-    // 자동 이동
-    if (autoTarget) {
-      const distX = autoTarget.x - myX;
-      const distY = autoTarget.y - myY;
-      const dist = Math.sqrt(distX * distX + distY * distY);
-
-      if (dist < SPEED * 2) {
-        // 목표 도착 → idle 대기
-        pickAutoIdle();
-      } else {
-        // 목표를 향해 이동
-        dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
-        dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
-      }
-    } else {
-      // idle 대기 중
-      autoIdle++;
-      if (autoIdle >= autoIdleDuration) {
-        pickAutoTarget();
-      }
-    }
-  }
-
-  myWalking = (dx !== 0 || dy !== 0);
-
-  if (dx < 0) myDir = 'left';
-  else if (dx > 0) myDir = 'right';
-  else if (dy < 0) myDir = 'back';
-  else if (dy > 0) myDir = 'front';
-
-  if (dx !== 0) {
-    if (goingToDesk || canMove(myX + dx, myY)) {
-      myX += dx;
-    } else if (!manualControl && !goingToDesk) {
-      pickAutoTarget();
-    }
-  }
-  if (dy !== 0) {
-    if (goingToDesk || canMove(myX, myY + dy)) {
-      myY += dy;
-    } else if (!manualControl && !goingToDesk) {
-      pickAutoTarget();
-    }
-  }
-
-  // 프레임 애니메이션 (매 8프레임마다)
-  if (frameCounter % 8 === 0 && myWalking) myFrameIndex++;
-
-  // 서버에 위치 전송 (매 3프레임)
-  if (socket && socket.connected && frameCounter - lastMoveEmit >= 3) {
-    lastMoveEmit = frameCounter;
-    socket.emit('move', { x: myX, y: myY, direction: myDir, isWalking: myWalking });
-  }
-
-  // 카메라
-  updateCamera();
-
-  // 렌더링
-  drawMap();
-
-  // 다른 유저 그리기
-  for (const [id, peer] of peers) {
-    const img = peerSprites.get(id);
-    if (img) {
-      const isWorking = (peer.mode === 'work');
-      const walking = isWorking ? false : peer.isWalking;
-      if (walking) {
-        if (frameCounter % 8 === 0) peer._frame = ((peer._frame || 0) + 1);
-      }
-      const label = peer.nickname + (isWorking ? ' (일하는 중)' : '');
-      drawCharacter(img, peer.x, peer.y, peer.direction, walking, peer._frame || 0, label);
-    }
-  }
-
-  // 내 캐릭터 그리기
-  if (mySpriteImg) {
-    drawCharacter(mySpriteImg, myX, myY, myDir, myWalking, myFrameIndex, myProfile.nickname);
-  }
-
-  requestAnimationFrame(gameLoop);
-}
-
-// ── 초기화 ──
+// ══════════════════════════════════════
+// 초기화
+// ══════════════════════════════════════
 async function init() {
   myProfile = await window.electronAPI.loadProfile();
   originalSVG = await window.electronAPI.readSVG();
-
-  // 원본 SVG(색상 미적용)을 사용해서 커스텀 스프라이트 생성
-  const rawSVG = originalSVG;
-  mySpriteImg = await createSpriteImage(rawSVG, myProfile.colors);
-
-  drawMap();
-  updateCamera();
-  gameLoop();
-  connectServer();
+  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors);
+  drawMap(); updateCamera(); gameLoop(); connectServer();
 }
-
-// ── 버튼 ──
-document.getElementById('btnWork').addEventListener('click', () => {
-  if (!goingToDesk) startGoingToDesk();
-});
-document.getElementById('btnClose').addEventListener('click', () => {
-  if (socket) socket.disconnect();
-  window.electronAPI.switchToWork();
-});
-document.getElementById('btnMinimize').addEventListener('click', () => {
-  if (socket) socket.disconnect();
-  window.electronAPI.switchToWork();
-});
-document.getElementById('btnQuit').addEventListener('click', () => {
-  if (socket) socket.disconnect();
-  window.electronAPI.quitApp();
-});
-
 init();
 </script>
 </body>

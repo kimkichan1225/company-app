@@ -142,6 +142,7 @@ io.on('connection', (socket) => {
       direction: 'front',
       isWalking: false,
       mode: data.mode || 'rest',
+      status: data.status || '휴식 중',
       seatIndex: -1,
     };
 
@@ -220,6 +221,18 @@ io.on('connection', (socket) => {
       x: user.x,
       y: user.y,
       direction: user.direction,
+    });
+  });
+
+  // 상태 변경
+  socket.on('status-change', (status) => {
+    const user = users.get(socket.id);
+    if (!user) return;
+    user.status = status;
+    io.emit('user-status-changed', {
+      id: socket.id,
+      nickname: user.nickname,
+      status,
     });
   });
 
