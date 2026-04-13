@@ -16,8 +16,10 @@
     "productName": "FitCharacter",
     "win": {
       "target": "dir",
-      "sign": false
+      "signAndEditExecutable": false,
+      "signtoolOptions": null
     },
+    "forceCodeSigning": false,
     "files": [
       "main.js",
       "preload.js",
