@@ -163,20 +163,26 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 12px;
+    padding: 0 8px;
     z-index: 10;
+    white-space: nowrap;
+    gap: 8px;
   }
   .bottom-bar .info {
-    font-size: 11px;
+    font-size: 10px;
     opacity: 0.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .back-btn {
     background: #27ae60;
     border: none;
     color: white;
-    padding: 5px 14px;
+    padding: 5px 10px;
     border-radius: 5px;
     cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
     font-size: 11px;
     font-weight: 600;
   }
@@ -204,8 +210,11 @@
       <span id="onlineCount">접속 중...</span>
     </div>
     <div class="bottom-bar">
-      <span class="info">방향키로 이동 / Enter로 채팅</span>
-      <button class="back-btn" id="btnWork">일하기 모드</button>
+      <span class="info">Enter: 채팅 / 방향키: 수동 이동</span>
+      <div style="display:flex;gap:6px;">
+        <button class="back-btn" id="btnWork">일하기 모드</button>
+        <button class="back-btn" id="btnQuit" style="background:#e74c3c;">종료</button>
+      </div>
     </div>
   </div>
 
@@ -221,6 +230,7 @@
   </div>
 </div>
 
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 // ── 서버 URL (Railway 배포 후 변경) ──
 const SERVER_URL = 'https://web-production-3efa6.up.railway.app';
@@ -489,7 +499,7 @@ let myX = 320, myY = 288;
 let myDir = 'front';
 let myWalking = false;
 let myFrameIndex = 0;
-const SPEED = 3;
+const SPEED = 1;
 const keysDown = new Set();
 
 // 다른 유저
@@ -497,7 +507,7 @@ const peers = new Map();
 const peerSprites = new Map();
 
 // ── SVG → 커스텀 색상 적용 이미지 생성 ──
-const ORIG_COLORS = { skin: '#fee7d5', hair: '#762f08', top: '#df2210', pants: '#10a4df', shoes: '#bb7750' };
+const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
 
 function createSpriteImage(svgText, colors) {
   return new Promise((resolve) => {
@@ -562,7 +572,7 @@ let originalSVG = '';
 
 async function connectServer() {
   try {
-    socket = window.electronAPI.connectSocket(SERVER_URL);
+    socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
 
     socket.on('connect', () => {
       document.getElementById('onlineCount').textContent = '서버 연결됨';
@@ -571,6 +581,7 @@ async function connectServer() {
         colors: myProfile.colors,
         x: myX,
         y: myY,
+        mode: 'rest',
       });
     });
 
@@ -610,6 +621,20 @@ async function connectServer() {
       peers.delete(id);
       peerSprites.delete(id);
       updateOnlineCount();
+    });
+
+    socket.on('user-mode-changed', (data) => {
+      const peer = peers.get(data.id);
+      if (peer) {
+        peer.mode = data.mode;
+        peer.seatIndex = data.seatIndex;
+        peer.x = data.x;
+        peer.y = data.y;
+        peer.direction = data.direction;
+        peer.isWalking = false;
+        const label = data.mode === 'work' ? '일하는 중' : '휴식 중';
+        addSystemMsg(`${peer.nickname} 님이 ${label} 상태로 변경`);
+      }
     });
 
     socket.on('chat-message', (data) => {
@@ -698,6 +723,34 @@ function updateCamera() {
   canvas.style.top = -camY + 'px';
 }
 
+// ── 자동 이동 (AI 산책) ──
+let autoTarget = null;    // 목표 좌표 { x, y }
+let autoIdle = 0;         // idle 대기 프레임
+let autoIdleDuration = 0;
+let manualControl = false; // 방향키 입력 중이면 true
+
+function pickAutoTarget() {
+  // 바닥 타일 중 랜덤 위치 선택
+  for (let tries = 0; tries < 50; tries++) {
+    const tx = Math.floor(Math.random() * (MAP_COLS - 4) + 2) * TILE;
+    const ty = Math.floor(Math.random() * (MAP_ROWS - 4) + 2) * TILE;
+    if (canMove(tx, ty)) {
+      autoTarget = { x: tx, y: ty };
+      return;
+    }
+  }
+  autoTarget = null;
+}
+
+function pickAutoIdle() {
+  autoTarget = null;
+  autoIdle = 0;
+  autoIdleDuration = 120 + Math.floor(Math.random() * 180); // 2~5초 대기
+}
+
+// 초기 상태
+pickAutoTarget();
+
 // ── 게임 루프 ──
 let frameCounter = 0;
 let lastMoveEmit = 0;
@@ -705,12 +758,40 @@ let lastMoveEmit = 0;
 function gameLoop() {
   frameCounter++;
 
-  // 이동
+  // 방향키 수동 조작 확인
+  manualControl = keysDown.size > 0;
+
   let dx = 0, dy = 0;
-  if (keysDown.has('ArrowLeft'))  dx -= SPEED;
-  if (keysDown.has('ArrowRight')) dx += SPEED;
-  if (keysDown.has('ArrowUp'))    dy -= SPEED;
-  if (keysDown.has('ArrowDown'))  dy += SPEED;
+
+  if (manualControl) {
+    // 수동 조작
+    if (keysDown.has('ArrowLeft'))  dx -= SPEED;
+    if (keysDown.has('ArrowRight')) dx += SPEED;
+    if (keysDown.has('ArrowUp'))    dy -= SPEED;
+    if (keysDown.has('ArrowDown'))  dy += SPEED;
+  } else {
+    // 자동 이동
+    if (autoTarget) {
+      const distX = autoTarget.x - myX;
+      const distY = autoTarget.y - myY;
+      const dist = Math.sqrt(distX * distX + distY * distY);
+
+      if (dist < SPEED * 2) {
+        // 목표 도착 → idle 대기
+        pickAutoIdle();
+      } else {
+        // 목표를 향해 이동
+        dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
+        dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
+      }
+    } else {
+      // idle 대기 중
+      autoIdle++;
+      if (autoIdle >= autoIdleDuration) {
+        pickAutoTarget();
+      }
+    }
+  }
 
   myWalking = (dx !== 0 || dy !== 0);
 
@@ -719,8 +800,17 @@ function gameLoop() {
   else if (dy < 0) myDir = 'back';
   else if (dy > 0) myDir = 'front';
 
-  if (dx !== 0 && canMove(myX + dx, myY)) myX += dx;
-  if (dy !== 0 && canMove(myX, myY + dy)) myY += dy;
+  if (dx !== 0 && canMove(myX + dx, myY)) {
+    myX += dx;
+  } else if (dx !== 0 && !manualControl) {
+    // 자동 이동 중 막히면 새 목표
+    pickAutoTarget();
+  }
+  if (dy !== 0 && canMove(myX, myY + dy)) {
+    myY += dy;
+  } else if (dy !== 0 && !manualControl) {
+    pickAutoTarget();
+  }
 
   // 프레임 애니메이션 (매 8프레임마다)
   if (frameCounter % 8 === 0 && myWalking) myFrameIndex++;
@@ -741,10 +831,13 @@ function gameLoop() {
   for (const [id, peer] of peers) {
     const img = peerSprites.get(id);
     if (img) {
-      if (peer.isWalking) {
+      const isWorking = (peer.mode === 'work');
+      const walking = isWorking ? false : peer.isWalking;
+      if (walking) {
         if (frameCounter % 8 === 0) peer._frame = ((peer._frame || 0) + 1);
       }
-      drawCharacter(img, peer.x, peer.y, peer.direction, peer.isWalking, peer._frame || 0, peer.nickname);
+      const label = peer.nickname + (isWorking ? ' (일하는 중)' : '');
+      drawCharacter(img, peer.x, peer.y, peer.direction, walking, peer._frame || 0, label);
     }
   }
 
@@ -783,6 +876,10 @@ document.getElementById('btnClose').addEventListener('click', () => {
 document.getElementById('btnMinimize').addEventListener('click', () => {
   if (socket) socket.disconnect();
   window.electronAPI.switchToWork();
+});
+document.getElementById('btnQuit').addEventListener('click', () => {
+  if (socket) socket.disconnect();
+  window.electronAPI.quitApp();
 });
 
 init();

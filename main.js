@@ -17,7 +17,7 @@ const svgPath = path.join(__dirname, 'pixelated-cartoon-boy.svg');
 const profilePath = path.join(app.getPath('userData'), 'profile.json');
 
 // 프로필 관리
-const DEFAULT_COLORS = { skin: '#fee7d5', hair: '#762f08', top: '#df2210', pants: '#10a4df', shoes: '#bb7750' };
+const DEFAULT_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
 const ORIGINAL_COLORS = { ...DEFAULT_COLORS };
 
 function loadProfile() {
@@ -308,9 +308,15 @@ ipcMain.on('switch-mode', (event, mode) => {
   switchMode(mode);
 });
 
+ipcMain.on('quit-app', () => {
+  app.isQuitting = true;
+  app.quit();
+});
+
 // SVG 읽기 (커스텀 색상 적용)
+// 원본 SVG 반환 (색상 적용은 클라이언트에서)
 ipcMain.handle('read-svg', async () => {
-  return getCustomSVG();
+  return fs.readFileSync(svgPath, 'utf-8');
 });
 
 // 프로필 IPC

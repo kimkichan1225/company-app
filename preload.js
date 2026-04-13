@@ -1,5 +1,4 @@
 const { contextBridge, ipcRenderer } = require('electron');
-const { io } = require('socket.io-client');
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // 윈도우 이동
@@ -24,6 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 셋업 완료
   setupDone: () => ipcRenderer.send('setup-done'),
 
-  // Socket.io 연결
-  connectSocket: (url) => io(url, { transports: ['websocket', 'polling'] }),
+  // 앱 종료
+  quitApp: () => ipcRenderer.send('quit-app'),
+
 });

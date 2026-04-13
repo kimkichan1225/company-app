@@ -141,9 +141,22 @@
     click: ['안녕!', '헤헤~', '뭐야?', '놀아줘!'],
   };
 
-  // SVG 로드
+  // 원본 색상
+  const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
+
+  // SVG 로드 (프로필 색상 적용)
   async function loadSprite() {
-    const svgText = await window.electronAPI.readSVG();
+    let svgText = await window.electronAPI.readSVG();
+    const profile = await window.electronAPI.loadProfile();
+    if (profile && profile.colors) {
+      for (const key of Object.keys(ORIG_COLORS)) {
+        const orig = ORIG_COLORS[key];
+        const custom = profile.colors[key];
+        if (custom && orig !== custom) {
+          svgText = svgText.replaceAll('fill="' + orig + '"', 'fill="' + custom + '"');
+        }
+      }
+    }
     const blob = new Blob([svgText], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     spriteImg = new Image();
@@ -329,10 +342,27 @@
     }
   });
 
-  // 우클릭 - 휴식 모드 전환
+  // 우클릭 - 컨텍스트 메뉴
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    showBubble('idle');
+    // 간단한 팝업 메뉴
+    const menu = document.createElement('div');
+    menu.style.cssText = 'position:fixed;top:' + e.clientY + 'px;left:' + e.clientX + 'px;background:#222;border:1px solid #444;border-radius:6px;padding:4px 0;z-index:100;font-family:Segoe UI,sans-serif;font-size:12px;min-width:100px;';
+    const items = [
+      { label: '휴식 모드', action: () => window.electronAPI.switchToRest() },
+      { label: '종료', action: () => window.electronAPI.quitApp() },
+    ];
+    items.forEach(item => {
+      const btn = document.createElement('div');
+      btn.textContent = item.label;
+      btn.style.cssText = 'padding:6px 14px;color:#eee;cursor:pointer;';
+      btn.onmouseenter = () => btn.style.background = '#3498db';
+      btn.onmouseleave = () => btn.style.background = 'transparent';
+      btn.onclick = () => { menu.remove(); item.action(); };
+      menu.appendChild(btn);
+    });
+    document.body.appendChild(menu);
+    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 10);
   });
 
   // 상태 점 더블클릭 - 휴식 모드
@@ -340,8 +370,34 @@
     window.electronAPI.switchToRest();
   });
 
+  // 서버에 일하기 모드로 접속
+  async function connectAsWorking() {
+    const profile = await window.electronAPI.loadProfile();
+    if (!profile) return;
+    try {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
+      script.onload = () => {
+        const socket = io('https://web-production-3efa6.up.railway.app', {
+          transports: ['websocket', 'polling']
+        });
+        socket.on('connect', () => {
+          socket.emit('join', {
+            nickname: profile.nickname,
+            colors: profile.colors,
+            mode: 'work',
+          });
+        });
+        // 휴식 모드 전환 시 모드 변경 알림
+        window._workSocket = socket;
+      };
+      document.head.appendChild(script);
+    } catch(e) {}
+  }
+
   // 시작
   loadSprite();
+  connectAsWorking();
 </script>
 </body>
 </html>
