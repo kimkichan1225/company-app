@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Fit Character - 캐릭터 만들기</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    font-family: 'Segoe UI', sans-serif;
+    background: #1a1a2e;
+    color: #ecf0f1;
+    overflow: hidden;
+  }
+
+  /* 타이틀바 */
+  .titlebar {
+    height: 32px;
+    background: #16213e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-app-region: drag;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+
+  .content {
+    padding: 24px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    height: calc(100% - 32px);
+  }
+
+  h1 {
+    font-size: 1.3rem;
+    font-weight: 700;
+  }
+  .subtitle {
+    font-size: 0.8rem;
+    opacity: 0.5;
+    margin-top: -12px;
+  }
+
+  /* 미리보기 + 설정 나란히 */
+  .editor {
+    display: flex;
+    gap: 28px;
+    align-items: flex-start;
+    width: 100%;
+  }
+
+  /* 캐릭터 미리보기 */
+  .preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .preview-box {
+    width: 160px;
+    height: 200px;
+    background: #27ae60;
+    border-radius: 12px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 12px;
+    image-rendering: pixelated;
+    position: relative;
+    overflow: hidden;
+  }
+  .preview-ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: #1e8449;
+  }
+  #previewCanvas {
+    image-rendering: pixelated;
+    z-index: 1;
+  }
+  .preview-name {
+    font-size: 12px;
+    background: rgba(0,0,0,0.4);
+    padding: 2px 10px;
+    border-radius: 8px;
+  }
+
+  /* 설정 패널 */
+  .settings {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* 닉네임 */
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field-group label {
+    font-size: 12px;
+    font-weight: 600;
+    opacity: 0.7;
+  }
+  .nickname-input {
+    background: #16213e;
+    border: 2px solid #0f3460;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #ecf0f1;
+    font-size: 14px;
+    outline: none;
+    width: 100%;
+  }
+  .nickname-input:focus { border-color: #3498db; }
+  .nickname-input::placeholder { color: #555; }
+
+  /* 색상 행 */
+  .color-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .color-row label {
+    font-size: 13px;
+    width: 50px;
+  }
+  .color-row input[type="color"] {
+    width: 36px;
+    height: 28px;
+    border: 2px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    background: none;
+    padding: 1px;
+  }
+  .color-row .hex {
+    font-size: 11px;
+    opacity: 0.4;
+    font-family: monospace;
+  }
+
+  /* 시작 버튼 */
+  .start-btn {
+    width: 100%;
+    padding: 12px;
+    background: #27ae60;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: auto;
+    transition: background 0.2s;
+  }
+  .start-btn:hover { background: #2ecc71; }
+  .start-btn:disabled {
+    background: #555;
+    cursor: not-allowed;
+  }
+
+  .error-msg {
+    font-size: 11px;
+    color: #e74c3c;
+    height: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="titlebar">캐릭터 만들기</div>
+
+<div class="content">
+  <h1>내 캐릭터 만들기</h1>
+  <p class="subtitle">색상을 선택하고 닉네임을 정해주세요</p>
+
+  <div class="editor">
+    <!-- 미리보기 -->
+    <div class="preview">
+      <div class="preview-box">
+        <div class="preview-ground"></div>
+        <canvas id="previewCanvas" width="128" height="192"></canvas>
+      </div>
+      <div class="preview-name" id="previewName">닉네임</div>
+    </div>
+
+    <!-- 설정 -->
+    <div class="settings">
+      <div class="field-group">
+        <label>닉네임</label>
+        <input type="text" class="nickname-input" id="nickname" placeholder="닉네임을 입력하세요" maxlength="12" />
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+
+      <div class="color-rows">
+        <div class="color-row">
+          <label>피부</label>
+          <input type="color" id="colorSkin" value="#fee7d5">
+          <span class="hex" id="hexSkin">#fee7d5</span>
+        </div>
+        <div class="color-row">
+          <label>머리</label>
+          <input type="color" id="colorHair" value="#762f08">
+          <span class="hex" id="hexHair">#762f08</span>
+        </div>
+        <div class="color-row">
+          <label>상의</label>
+          <input type="color" id="colorTop" value="#df2210">
+          <span class="hex" id="hexTop">#df2210</span>
+        </div>
+        <div class="color-row">
+          <label>바지</label>
+          <input type="color" id="colorPants" value="#10a4df">
+          <span class="hex" id="hexPants">#10a4df</span>
+        </div>
+        <div class="color-row">
+          <label>신발</label>
+          <input type="color" id="colorShoes" value="#bb7750">
+          <span class="hex" id="hexShoes">#bb7750</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <button class="start-btn" id="startBtn" disabled>시작하기</button>
+</div>
+
+<script>
+  const canvas = document.getElementById('previewCanvas');
+  const ctx = canvas.getContext('2d');
+  const nicknameInput = document.getElementById('nickname');
+  const previewName = document.getElementById('previewName');
+  const errorMsg = document.getElementById('errorMsg');
+  const startBtn = document.getElementById('startBtn');
+
+  // 원본 색상
+  const ORIG = { skin: '#fee7d5', hair: '#762f08', top: '#df2210', pants: '#10a4df', shoes: '#bb7750' };
+  let colors = { ...ORIG };
+
+
+  // 색상 입력 요소
+  const COLOR_INPUTS = {
+    skin:  { input: document.getElementById('colorSkin'),  hex: document.getElementById('hexSkin') },
+    hair:  { input: document.getElementById('colorHair'),  hex: document.getElementById('hexHair') },
+    top:   { input: document.getElementById('colorTop'),   hex: document.getElementById('hexTop') },
+    pants: { input: document.getElementById('colorPants'), hex: document.getElementById('hexPants') },
+    shoes: { input: document.getElementById('colorShoes'), hex: document.getElementById('hexShoes') },
+  };
+
+  // SVG 원본
+  let originalSVG = '';
+  let spriteImg = null;
+
+  // 스프라이트 애니메이션
+  const FRAME_W = 64, FRAME_H = 96;
+  let frameIndex = 0;
+  const IDLE_FRAME = { 0: 0, 1: 0, 2: 0, 3: 1 };
+
+  // SVG 로드
+  async function init() {
+    originalSVG = await window.electronAPI.readSVG();
+    updateSprite();
+
+    // 기존 프로필이 있으면 로드
+    const profile = await window.electronAPI.loadProfile();
+    if (profile) {
+      if (profile.nickname) {
+        nicknameInput.value = profile.nickname;
+        previewName.textContent = profile.nickname;
+        startBtn.disabled = false;
+      }
+      if (profile.colors) {
+        colors = { ...profile.colors };
+        for (const [key, cfg] of Object.entries(COLOR_INPUTS)) {
+          cfg.input.value = colors[key];
+          cfg.hex.textContent = colors[key];
+        }
+      }
+    }
+  }
+
+  function updateSprite() {
+    // 원본 SVG에 색상 적용
+    let svg = originalSVG;
+    for (const key of Object.keys(ORIG)) {
+      if (colors[key] !== ORIG[key]) {
+        svg = svg.replaceAll('fill="' + ORIG[key] + '"', 'fill="' + colors[key] + '"');
+      }
+    }
+
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      spriteImg = img;
+      drawPreview();
+    };
+    img.src = url;
+  }
+
+  function drawPreview() {
+    ctx.clearRect(0, 0, 128, 192);
+    if (!spriteImg) return;
+    // 앞보기 정지 프레임
+    const sx = IDLE_FRAME[0] * FRAME_W;
+    const sy = 0;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(spriteImg, sx, sy, FRAME_W, FRAME_H, 0, 0, 128, 192);
+  }
+
+  // 애니메이션 (걷기 프리뷰)
+  let animRow = 0;
+  let animTimer = setInterval(() => {
+    if (!spriteImg) return;
+    frameIndex = (frameIndex + 1) % 4;
+    ctx.clearRect(0, 0, 128, 192);
+    ctx.imageSmoothingEnabled = false;
+
+    // 방향 순환: 앞 → 왼쪽 → 뒤 → 오른쪽
+    const rows = [0, 2, 1, 3];
+    const cycleFrame = Math.floor(Date.now() / 2000) % 4;
+    animRow = rows[cycleFrame];
+
+    const sx = (frameIndex % 4) * FRAME_W;
+    const sy = animRow * FRAME_H;
+    ctx.drawImage(spriteImg, sx, sy, FRAME_W, FRAME_H, 0, 0, 128, 192);
+  }, 200);
+
+  // 색상 변경 이벤트
+  for (const [key, cfg] of Object.entries(COLOR_INPUTS)) {
+    cfg.input.addEventListener('input', (e) => {
+      colors[key] = e.target.value;
+      cfg.hex.textContent = e.target.value;
+      updateSprite();
+    });
+  }
+
+  // 닉네임 입력
+  nicknameInput.addEventListener('input', () => {
+    const val = nicknameInput.value.trim();
+    previewName.textContent = val || '닉네임';
+    if (val.length === 0) {
+      startBtn.disabled = true;
+      errorMsg.textContent = '';
+    } else if (val.length < 2) {
+      startBtn.disabled = true;
+      errorMsg.textContent = '2글자 이상 입력해주세요';
+    } else {
+      startBtn.disabled = false;
+      errorMsg.textContent = '';
+    }
+  });
+
+  // 시작 버튼
+  startBtn.addEventListener('click', async () => {
+    const nickname = nicknameInput.value.trim();
+    if (nickname.length < 2) return;
+
+    const profile = {
+      nickname,
+      colors: { ...colors },
+      createdAt: new Date().toISOString(),
+    };
+
+    await window.electronAPI.saveProfile(profile);
+    window.electronAPI.setupDone();
+  });
+
+  init();
+</script>
+</body>
+</html>

@@ -12,8 +12,49 @@ let restWin = null;   // 휴식 중 (소통 창)
 let tray = null;
 let currentMode = 'work';
 
-// SVG 파일 경로
+// 파일 경로
 const svgPath = path.join(__dirname, 'pixelated-cartoon-boy.svg');
+const profilePath = path.join(app.getPath('userData'), 'profile.json');
+
+// 프로필 관리
+const DEFAULT_COLORS = { skin: '#fee7d5', hair: '#762f08', top: '#df2210', pants: '#10a4df', shoes: '#bb7750' };
+const ORIGINAL_COLORS = { ...DEFAULT_COLORS };
+
+function loadProfile() {
+  try {
+    if (fs.existsSync(profilePath)) {
+      return JSON.parse(fs.readFileSync(profilePath, 'utf-8'));
+    }
+  } catch (e) {}
+  return null;
+}
+
+function saveProfile(profile) {
+  fs.writeFileSync(profilePath, JSON.stringify(profile, null, 2), 'utf-8');
+}
+
+function hasProfile() {
+  return fs.existsSync(profilePath);
+}
+
+// SVG에 커스텀 색상 적용
+function getCustomSVG() {
+  let svg = fs.readFileSync(svgPath, 'utf-8');
+  const profile = loadProfile();
+  if (profile && profile.colors) {
+    const colorKeys = Object.keys(ORIGINAL_COLORS);
+    for (const key of colorKeys) {
+      const orig = ORIGINAL_COLORS[key];
+      const custom = profile.colors[key];
+      if (custom && orig !== custom) {
+        svg = svg.replaceAll(`fill="${orig}"`, `fill="${custom}"`);
+      }
+    }
+  }
+  return svg;
+}
+
+let setupWin = null;
 
 // ── 자동 업데이트 ──
 function httpGet(url) {
@@ -267,15 +308,73 @@ ipcMain.on('switch-mode', (event, mode) => {
   switchMode(mode);
 });
 
-// SVG 읽기
+// SVG 읽기 (커스텀 색상 적용)
 ipcMain.handle('read-svg', async () => {
-  return fs.readFileSync(svgPath, 'utf-8');
+  return getCustomSVG();
 });
+
+// 프로필 IPC
+ipcMain.handle('save-profile', async (event, profile) => {
+  saveProfile(profile);
+  return true;
+});
+
+ipcMain.handle('load-profile', async () => {
+  return loadProfile();
+});
+
+ipcMain.handle('has-profile', async () => {
+  return hasProfile();
+});
+
+// 셋업 완료 → Work 모드로
+ipcMain.on('setup-done', () => {
+  if (setupWin) {
+    setupWin.close();
+    setupWin = null;
+  }
+  createWorkWindow();
+});
+
+// 셋업 윈도우
+function createSetupWindow() {
+  const display = screen.getPrimaryDisplay();
+  const { width, height } = display.workAreaSize;
+
+  setupWin = new BrowserWindow({
+    width: 520,
+    height: 580,
+    x: Math.floor((width - 520) / 2),
+    y: Math.floor((height - 580) / 2),
+    frame: false,
+    resizable: false,
+    transparent: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  setupWin.loadFile('setup.html');
+
+  setupWin.on('closed', () => {
+    setupWin = null;
+    // 셋업 안 하고 닫으면 앱 종료
+    if (!hasProfile()) {
+      app.quit();
+    }
+  });
+}
 
 // 앱 시작
 app.whenReady().then(() => {
   createTray();
-  createWorkWindow();
+  if (hasProfile()) {
+    createWorkWindow();
+  } else {
+    createSetupWindow();
+  }
 });
 
 app.on('window-all-closed', () => {
