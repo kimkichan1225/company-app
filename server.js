@@ -1,6 +1,7 @@
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const { Pool } = require('pg');
 
 const app = express();
 const server = http.createServer(app);
@@ -8,11 +9,81 @@ const io = new Server(server, {
   cors: { origin: '*' },
 });
 
-// 접속 중인 유저 관리
+// ── PostgreSQL ──
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL || 'postgresql://postgres:kYzCJkFsoKyZCZFkTTZcneJoPUmoFZKt@postgres.railway.internal:5432/railway',
+  ssl: false,
+});
+
+// 테이블 생성
+async function initDB() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS profiles (
+        id TEXT PRIMARY KEY,
+        nickname TEXT NOT NULL,
+        colors JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW(),
+        last_seen TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS chat_history (
+        id SERIAL PRIMARY KEY,
+        nickname TEXT NOT NULL,
+        message TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    console.log('DB 테이블 초기화 완료');
+  } catch (err) {
+    console.error('DB 초기화 실패:', err.message);
+  }
+}
+
+// 프로필 저장/업데이트
+async function saveProfile(nickname, colors) {
+  try {
+    await pool.query(`
+      INSERT INTO profiles (id, nickname, colors, last_seen)
+      VALUES ($1, $1, $2, NOW())
+      ON CONFLICT (id) DO UPDATE SET colors = $2, last_seen = NOW()
+    `, [nickname, JSON.stringify(colors)]);
+  } catch (err) {
+    console.error('프로필 저장 실패:', err.message);
+  }
+}
+
+// 채팅 저장
+async function saveChatMessage(nickname, message) {
+  try {
+    await pool.query(
+      'INSERT INTO chat_history (nickname, message) VALUES ($1, $2)',
+      [nickname, message]
+    );
+  } catch (err) {
+    console.error('채팅 저장 실패:', err.message);
+  }
+}
+
+// 최근 채팅 불러오기
+async function getRecentChats(limit = 50) {
+  try {
+    const result = await pool.query(
+      'SELECT nickname, message, created_at FROM chat_history ORDER BY created_at DESC LIMIT $1',
+      [limit]
+    );
+    return result.rows.reverse();
+  } catch (err) {
+    console.error('채팅 로드 실패:', err.message);
+    return [];
+  }
+}
+
+// ── 접속 중인 유저 관리 (메모리) ──
 const users = new Map();
 
-// 책상 좌석 위치 (의자 타일의 맵 좌표 → 픽셀 좌표)
-// 맵에서 의자(CHAIR) 위치: 각 책상 아래 의자
+// 책상 좌석 위치
 const SEATS = [
   { col: 2,  row: 4,  dir: 'back' },
   { col: 3,  row: 4,  dir: 'back' },
@@ -28,7 +99,6 @@ const SEATS = [
   { col: 7,  row: 13, dir: 'back' },
 ];
 
-// 좌석 사용 현황 (seatIndex → socketId)
 const seatAssignments = new Map();
 
 function assignSeat(socketId) {
@@ -38,7 +108,7 @@ function assignSeat(socketId) {
       return i;
     }
   }
-  return -1; // 빈 좌석 없음
+  return -1;
 }
 
 function releaseSeat(socketId) {
@@ -57,11 +127,12 @@ function getSeatPosition(seatIndex) {
   return { x: seat.col * 32 + 2, y: seat.row * 32 - 10, direction: seat.dir };
 }
 
+// ── Socket.io ──
 io.on('connection', (socket) => {
   console.log(`접속: ${socket.id}`);
 
-  // 유저 입장 (프로필 + 초기 위치)
-  socket.on('join', (data) => {
+  // 유저 입장
+  socket.on('join', async (data) => {
     const user = {
       id: socket.id,
       nickname: data.nickname,
@@ -70,7 +141,7 @@ io.on('connection', (socket) => {
       y: data.y || 300,
       direction: 'front',
       isWalking: false,
-      mode: data.mode || 'rest',  // work 또는 rest
+      mode: data.mode || 'rest',
       seatIndex: -1,
     };
 
@@ -89,8 +160,17 @@ io.on('connection', (socket) => {
 
     users.set(socket.id, user);
 
-    // 좌석 정보 포함하여 전송
+    // DB에 프로필 저장
+    await saveProfile(data.nickname, data.colors);
+
+    // 기존 유저 목록 전송
     socket.emit('users-list', Array.from(users.values()));
+
+    // 최근 채팅 기록 전송
+    const recentChats = await getRecentChats(30);
+    socket.emit('chat-history', recentChats);
+
+    // 다른 유저에게 새 유저 알림
     socket.broadcast.emit('user-joined', user);
     console.log(`입장: ${data.nickname} (${socket.id}) [${user.mode}]`);
   });
@@ -117,10 +197,8 @@ io.on('connection', (socket) => {
     const user = users.get(socket.id);
     if (!user) return;
 
-    // 기존 좌석 해제
     releaseSeat(socket.id);
     user.seatIndex = -1;
-
     user.mode = mode;
 
     if (mode === 'work') {
@@ -146,9 +224,13 @@ io.on('connection', (socket) => {
   });
 
   // 채팅
-  socket.on('chat', (message) => {
+  socket.on('chat', async (message) => {
     const user = users.get(socket.id);
     if (!user) return;
+
+    // DB에 저장
+    await saveChatMessage(user.nickname, message);
+
     io.emit('chat-message', {
       id: socket.id,
       nickname: user.nickname,
@@ -169,7 +251,10 @@ io.on('connection', (socket) => {
   });
 });
 
+// 서버 시작
 const PORT = process.env.PORT || 3456;
-server.listen(PORT, () => {
-  console.log(`FitCharacter 서버 실행 중: http://localhost:${PORT}`);
+initDB().then(() => {
+  server.listen(PORT, () => {
+    console.log(`FitCharacter 서버 실행 중: http://localhost:${PORT}`);
+  });
 });

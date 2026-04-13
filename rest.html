@@ -637,6 +637,12 @@ async function connectServer() {
       }
     });
 
+    socket.on('chat-history', (history) => {
+      for (const msg of history) {
+        addChatMsg(msg.nickname, msg.message);
+      }
+    });
+
     socket.on('chat-message', (data) => {
       addChatMsg(data.nickname, data.message);
     });
