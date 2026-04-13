@@ -311,91 +311,344 @@ const ctx = canvas.getContext('2d');
 canvas.width = MAP_W;
 canvas.height = MAP_H;
 
+// 그림자 헬퍼
+function shadow(x, y, w, h, alpha=0.15) {
+  ctx.fillStyle = `rgba(0,0,0,${alpha})`;
+  ctx.fillRect(x+2, y+2, w, h);
+}
+
 function drawTile(col, row) {
   const x = col * TILE, y = row * TILE;
   const type = MAP[row][col];
+  const S = TILE;
 
-  // 기본 바닥
-  ctx.fillStyle = '#b5894e';
-  ctx.fillRect(x, y, TILE, TILE);
-  if (type === T.FLOOR || type === T.CHAIR) {
-    ctx.strokeStyle = '#a57a3e'; ctx.lineWidth = 0.5;
-    if (col % 2 === 0) { ctx.beginPath(); ctx.moveTo(x+TILE/2,y); ctx.lineTo(x+TILE/2,y+TILE); ctx.stroke(); }
+  // 기본 나무 바닥
+  ctx.fillStyle = '#c49a5c';
+  ctx.fillRect(x, y, S, S);
+  // 나무판자 패턴
+  ctx.fillStyle = '#b8904e';
+  ctx.fillRect(x, y, S, 1);
+  ctx.fillRect(x, y+S/2, S, 1);
+  if (col % 2 === 0) {
+    ctx.fillStyle = '#ba924f';
+    ctx.fillRect(x+S/2, y, 1, S);
   }
+  // 미세한 결
+  ctx.fillStyle = 'rgba(0,0,0,0.03)';
+  ctx.fillRect(x, y+4, S, 1);
+  ctx.fillRect(x, y+S-6, S, 1);
 
   switch (type) {
-    case T.WALL_TOP:
-      ctx.fillStyle = '#5a5a6e'; ctx.fillRect(x,y,TILE,TILE);
-      ctx.fillStyle = '#6a6a7e'; ctx.fillRect(x,y+TILE-4,TILE,4); break;
-    case T.WALL_LEFT:
-      ctx.fillStyle = '#4a4a5e'; ctx.fillRect(x,y,6,TILE); break;
-    case T.WALL_RIGHT:
-      ctx.fillStyle = '#4a4a5e'; ctx.fillRect(x+TILE-6,y,6,TILE); break;
-    case T.WALL_BOT:
-      ctx.fillStyle = '#5a5a6e'; ctx.fillRect(x,y,TILE,4); break;
-    case T.TILE_FLOOR:
-      ctx.fillStyle = '#8a9aaa'; ctx.fillRect(x,y,TILE,TILE);
-      ctx.strokeStyle = '#7a8a9a'; ctx.lineWidth = 0.5;
-      ctx.strokeRect(x+1,y+1,TILE-2,TILE-2); break;
-    case T.DESK:
-      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+2,y+4,TILE-4,TILE-8);
-      ctx.fillStyle = '#7d5030'; ctx.fillRect(x+2,y+4,TILE-4,3); break;
-    case T.MONITOR:
-      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+2,y+10,TILE-4,TILE-12);
-      ctx.fillStyle = '#1a1a2e'; ctx.fillRect(x+6,y+2,TILE-12,14);
-      ctx.fillStyle = '#3498db'; ctx.fillRect(x+8,y+4,TILE-16,10);
-      ctx.fillStyle = 'rgba(255,255,255,0.15)'; ctx.fillRect(x+9,y+5,4,3); break;
-    case T.CHAIR:
-      ctx.fillStyle = '#2a2a2a'; ctx.fillRect(x+8,y+8,TILE-16,TILE-12);
-      ctx.fillStyle = '#333'; ctx.fillRect(x+10,y+6,TILE-20,4); break;
-    case T.SOFA:
-      ctx.fillStyle = '#7b3f7b'; ctx.fillRect(x+2,y+4,TILE-4,TILE-6);
-      ctx.fillStyle = '#9b5f9b'; ctx.fillRect(x+4,y+6,TILE-8,TILE-12); break;
-    case T.TABLE:
-      ctx.fillStyle = '#8b6b4a'; ctx.fillRect(x+2,y+6,TILE-4,TILE-12);
-      ctx.fillStyle = '#9b7b5a'; ctx.fillRect(x+2,y+6,TILE-4,3); break;
-    case T.BOOKSHELF:
-      ctx.fillStyle = '#5a3a1a'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
-      ['#e74c3c','#3498db','#2ecc71','#f39c12'].forEach((c,i) => {
-        ctx.fillStyle = c; ctx.fillRect(x+5+i*5,y+5,4,10);
-        ctx.fillRect(x+5+i*5,y+18,4,8);
-      }); break;
-    case T.PLANT:
-      ctx.fillStyle = '#8b5e3c'; ctx.fillRect(x+10,y+20,12,10);
-      ctx.fillStyle = '#2d8a4e'; ctx.beginPath(); ctx.arc(x+16,y+14,10,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#3ca85e'; ctx.beginPath(); ctx.arc(x+13,y+12,6,0,Math.PI*2); ctx.fill(); break;
-    case T.COFFEE:
-      ctx.fillStyle = '#555'; ctx.fillRect(x+4,y+2,TILE-8,TILE-4);
-      ctx.fillStyle = '#ddd'; ctx.fillRect(x+12,y+20,8,8);
-      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+13,y+21,6,5); break;
-    case T.RUG:
-      ctx.fillStyle = '#c4a882'; ctx.fillRect(x,y,TILE,TILE);
-      ctx.strokeStyle = '#b09872'; ctx.lineWidth = 1; ctx.strokeRect(x+1,y+1,TILE-2,TILE-2); break;
-    case T.WHITEBOARD:
-      ctx.fillStyle = (row === 0 || MAP[row-1]?.[col] === T.WALL_TOP) ? '#5a5a6e' : '#8a9aaa';
-      ctx.fillRect(x,y,TILE,TILE);
-      ctx.fillStyle = '#ddd'; ctx.fillRect(x+4,y+TILE-10,TILE-8,8); break;
-    case T.VENDING:
-      ctx.fillStyle = '#444'; ctx.fillRect(x+2,y+2,TILE-4,TILE-4);
-      ctx.fillStyle = '#e74c3c'; ctx.fillRect(x+6,y+6,TILE-12,12);
-      ctx.fillStyle = '#3498db'; ctx.fillRect(x+6,y+20,TILE-12,6); break;
-    case T.COUNTER:
-      ctx.fillStyle = '#8b6b4a'; ctx.fillRect(x,y+4,TILE,TILE-8);
-      ctx.fillStyle = '#9b7b5a'; ctx.fillRect(x,y+4,TILE,4); break;
-    case T.DIVIDER:
-      ctx.fillStyle = '#6a6a7a'; ctx.fillRect(x+13,y,6,TILE); break;
+    case T.WALL_TOP: {
+      // 벽 상단 — 벽돌 느낌
+      ctx.fillStyle = '#5a5a6e'; ctx.fillRect(x,y,S,S);
+      ctx.fillStyle = '#626278'; ctx.fillRect(x,y+S-5,S,5);
+      // 벽돌 라인
+      ctx.strokeStyle = '#505064'; ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(x,y+10); ctx.lineTo(x+S,y+10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,y+20); ctx.lineTo(x+S,y+20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+S/2,y); ctx.lineTo(x+S/2,y+10); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+S/4,y+10); ctx.lineTo(x+S/4,y+20); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+S*3/4,y+10); ctx.lineTo(x+S*3/4,y+20); ctx.stroke();
+      // 하이라이트
+      ctx.fillStyle = 'rgba(255,255,255,0.05)'; ctx.fillRect(x,y,S,3);
+      break;
+    }
+    case T.WALL_LEFT: {
+      ctx.fillStyle = '#4a4a5e'; ctx.fillRect(x,y,7,S);
+      ctx.fillStyle = '#555569'; ctx.fillRect(x+5,y,2,S);
+      ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(x+7,y,2,S);
+      break;
+    }
+    case T.WALL_RIGHT: {
+      ctx.fillStyle = '#4a4a5e'; ctx.fillRect(x+S-7,y,7,S);
+      ctx.fillStyle = '#555569'; ctx.fillRect(x+S-7,y,2,S);
+      ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.fillRect(x+S-9,y,2,S);
+      break;
+    }
+    case T.WALL_BOT: {
+      ctx.fillStyle = '#5a5a6e'; ctx.fillRect(x,y,S,5);
+      ctx.fillStyle = '#626278'; ctx.fillRect(x,y,S,2);
+      break;
+    }
+    case T.TILE_FLOOR: {
+      // 타일 바닥 (회의실/카페)
+      ctx.fillStyle = '#9aabb8'; ctx.fillRect(x,y,S,S);
+      ctx.fillStyle = '#8a9ba8'; ctx.fillRect(x,y,S,1); ctx.fillRect(x,y,1,S);
+      ctx.fillStyle = '#a8b8c4'; ctx.fillRect(x+1,y+1,S-2,1); ctx.fillRect(x+1,y+1,1,S-2);
+      // 반사광
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fillRect(x+3,y+3,8,6);
+      break;
+    }
+    case T.DESK: {
+      // 책상 — 나무 질감 + 다리 + 서랍
+      shadow(x+2, y+4, S-4, S-6);
+      ctx.fillStyle = '#7d5030'; ctx.fillRect(x+2,y+4,S-4,S-8);
+      ctx.fillStyle = '#8b5c38'; ctx.fillRect(x+2,y+4,S-4,3); // 상판 하이라이트
+      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+2,y+S-5,S-4,2); // 앞면
+      // 나무결
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      ctx.fillRect(x+4,y+8,S-8,1); ctx.fillRect(x+4,y+14,S-8,1);
+      // 서랍 손잡이
+      ctx.fillStyle = '#a0a0a0'; ctx.fillRect(x+S/2-2,y+S-4,4,1);
+      // 다리
+      ctx.fillStyle = '#5a3820';
+      ctx.fillRect(x+3,y+S-4,2,4); ctx.fillRect(x+S-5,y+S-4,2,4);
+      break;
+    }
+    case T.MONITOR: {
+      // 책상 + 모니터
+      shadow(x+2, y+10, S-4, S-10);
+      ctx.fillStyle = '#7d5030'; ctx.fillRect(x+2,y+12,S-4,S-14);
+      ctx.fillStyle = '#8b5c38'; ctx.fillRect(x+2,y+12,S-4,2);
+      // 다리
+      ctx.fillStyle = '#5a3820';
+      ctx.fillRect(x+3,y+S-3,2,3); ctx.fillRect(x+S-5,y+S-3,2,3);
+      // 모니터
+      shadow(x+5, y+1, S-10, 15);
+      ctx.fillStyle = '#1a1a2e'; ctx.fillRect(x+5,y+1,S-10,14);
+      ctx.fillStyle = '#2c3e50'; ctx.fillRect(x+6,y+2,S-12,11);
+      // 화면 내용 (코드 줄)
+      ctx.fillStyle = '#3498db'; ctx.fillRect(x+7,y+4,8,1);
+      ctx.fillStyle = '#2ecc71'; ctx.fillRect(x+7,y+6,6,1);
+      ctx.fillStyle = '#e74c3c'; ctx.fillRect(x+7,y+8,10,1);
+      ctx.fillStyle = '#f39c12'; ctx.fillRect(x+7,y+10,5,1);
+      // 화면 반사
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x+6,y+2,4,5);
+      // 모니터 받침
+      ctx.fillStyle = '#333'; ctx.fillRect(x+S/2-2,y+15,4,2);
+      ctx.fillRect(x+S/2-4,y+16,8,1);
+      break;
+    }
+    case T.CHAIR: {
+      // 의자 — 등받이 + 쿠션 + 바퀴
+      shadow(x+8, y+6, S-16, S-10);
+      // 쿠션
+      ctx.fillStyle = '#333'; ctx.fillRect(x+9,y+14,S-18,S-18);
+      ctx.fillStyle = '#3a3a3a'; ctx.fillRect(x+10,y+15,S-20,S-20);
+      // 등받이
+      ctx.fillStyle = '#2a2a2a'; ctx.fillRect(x+9,y+6,S-18,10);
+      ctx.fillStyle = '#333'; ctx.fillRect(x+10,y+7,S-20,8);
+      // 바퀴
+      ctx.fillStyle = '#222';
+      ctx.fillRect(x+8,y+S-4,3,2); ctx.fillRect(x+S-11,y+S-4,3,2);
+      ctx.fillRect(x+S/2-1,y+S-3,3,2);
+      break;
+    }
+    case T.SOFA: {
+      // 소파 — 팔걸이 + 쿠션 음영
+      shadow(x+1, y+3, S-2, S-4);
+      // 본체
+      ctx.fillStyle = '#6b2f6b'; ctx.fillRect(x+1,y+3,S-2,S-5);
+      // 쿠션
+      ctx.fillStyle = '#8b4f8b'; ctx.fillRect(x+4,y+6,S-8,S-12);
+      ctx.fillStyle = '#9b5f9b'; ctx.fillRect(x+5,y+7,S-10,S-14);
+      // 쿠션 라인
+      ctx.fillStyle = '#7b4f7b'; ctx.fillRect(x+S/2,y+7,1,S-14);
+      // 팔걸이
+      ctx.fillStyle = '#5b2f5b';
+      ctx.fillRect(x+1,y+3,4,S-5); ctx.fillRect(x+S-5,y+3,4,S-5);
+      // 하이라이트
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(x+5,y+7,S-10,2);
+      break;
+    }
+    case T.TABLE: {
+      // 테이블 — 상판 + 다리
+      shadow(x+1, y+5, S-2, S-10);
+      ctx.fillStyle = '#8b6b4a'; ctx.fillRect(x+1,y+5,S-2,S-10);
+      ctx.fillStyle = '#9b7b5a'; ctx.fillRect(x+1,y+5,S-2,3);
+      // 나무결
+      ctx.fillStyle = 'rgba(0,0,0,0.05)';
+      ctx.fillRect(x+3,y+10,S-6,1); ctx.fillRect(x+3,y+16,S-6,1);
+      // 다리
+      ctx.fillStyle = '#6b4a2a';
+      ctx.fillRect(x+3,y+S-6,2,6); ctx.fillRect(x+S-5,y+S-6,2,6);
+      // 상판 하이라이트
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x+2,y+5,8,2);
+      break;
+    }
+    case T.BOOKSHELF: {
+      // 책장 — 프레임 + 선반 + 책들
+      shadow(x+1, y+1, S-2, S-2);
+      ctx.fillStyle = '#5a3a1a'; ctx.fillRect(x+1,y+1,S-2,S-2);
+      ctx.fillStyle = '#6b4a2a'; ctx.fillRect(x+2,y+1,S-4,2); // 상단
+      // 선반
+      ctx.fillStyle = '#4a2a0a';
+      ctx.fillRect(x+2,y+15,S-4,2); // 중간 선반
+      // 윗칸 책들
+      const books1 = ['#c0392b','#2980b9','#27ae60','#f39c12','#8e44ad'];
+      books1.forEach((c,i) => {
+        ctx.fillStyle = c;
+        ctx.fillRect(x+3+i*5, y+4, 4, 11);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(x+3+i*5, y+4, 4, 1);
+      });
+      // 아랫칸 책들 (다른 배치)
+      const books2 = ['#e67e22','#1abc9c','#e74c3c','#3498db','#9b59b6'];
+      books2.forEach((c,i) => {
+        ctx.fillStyle = c;
+        const bh = 7 + (i%2)*3;
+        ctx.fillRect(x+3+i*5, y+28-bh, 4, bh);
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(x+3+i*5, y+28-bh, 4, 1);
+      });
+      break;
+    }
+    case T.PLANT: {
+      // 화분 — 화분 + 줄기 + 잎
+      // 그림자
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.beginPath(); ctx.ellipse(x+16,y+S-2,8,3,0,0,Math.PI*2); ctx.fill();
+      // 화분
+      ctx.fillStyle = '#a0603c'; ctx.fillRect(x+10,y+20,12,10);
+      ctx.fillStyle = '#b0704c'; ctx.fillRect(x+9,y+20,14,3);
+      ctx.fillStyle = '#8b5030'; ctx.fillRect(x+11,y+27,10,3);
+      // 흙
+      ctx.fillStyle = '#5a3a1a'; ctx.fillRect(x+11,y+20,10,3);
+      // 잎들
+      ctx.fillStyle = '#1e7a3e';
+      ctx.beginPath(); ctx.ellipse(x+16,y+13,9,8,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#28a04e';
+      ctx.beginPath(); ctx.ellipse(x+13,y+11,6,5,0,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(x+20,y+12,5,5,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#32b85e';
+      ctx.beginPath(); ctx.ellipse(x+16,y+9,4,4,0,0,Math.PI*2); ctx.fill();
+      // 하이라이트
+      ctx.fillStyle = 'rgba(255,255,255,0.12)';
+      ctx.beginPath(); ctx.ellipse(x+14,y+9,2,2,0,0,Math.PI*2); ctx.fill();
+      break;
+    }
+    case T.COFFEE: {
+      // 커피머신
+      shadow(x+4, y+2, S-8, S-3);
+      // 본체
+      ctx.fillStyle = '#444'; ctx.fillRect(x+4,y+2,S-8,S-4);
+      ctx.fillStyle = '#555'; ctx.fillRect(x+5,y+2,S-10,3);
+      // 상단 부분
+      ctx.fillStyle = '#333'; ctx.fillRect(x+6,y+5,S-12,8);
+      // 버튼
+      ctx.fillStyle = '#e74c3c'; ctx.fillRect(x+8,y+7,3,3);
+      ctx.fillStyle = '#2ecc71'; ctx.fillRect(x+13,y+7,3,3);
+      // 노즐
+      ctx.fillStyle = '#666'; ctx.fillRect(x+S/2-1,y+13,3,4);
+      // 컵
+      ctx.fillStyle = '#eee'; ctx.fillRect(x+S/2-4,y+20,8,8);
+      ctx.fillStyle = '#ddd'; ctx.fillRect(x+S/2-3,y+21,6,6);
+      // 커피
+      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+S/2-2,y+22,4,4);
+      // 김
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(x+S/2-1,y+18,1,2);
+      ctx.fillRect(x+S/2+1,y+17,1,3);
+      break;
+    }
+    case T.RUG: {
+      // 카펫 — 패턴 + 테두리 + 프린지
+      ctx.fillStyle = '#c9a97a'; ctx.fillRect(x,y,S,S);
+      ctx.fillStyle = '#b8986a'; ctx.fillRect(x+2,y+2,S-4,S-4);
+      ctx.fillStyle = '#c4a070'; ctx.fillRect(x+4,y+4,S-8,S-8);
+      // 패턴
+      ctx.fillStyle = '#b0905a';
+      ctx.fillRect(x+S/2-1,y+4,2,S-8);
+      ctx.fillRect(x+4,y+S/2-1,S-8,2);
+      // 코너 장식
+      ctx.fillStyle = '#a08050';
+      ctx.fillRect(x+5,y+5,3,3); ctx.fillRect(x+S-8,y+5,3,3);
+      ctx.fillRect(x+5,y+S-8,3,3); ctx.fillRect(x+S-8,y+S-8,3,3);
+      break;
+    }
+    case T.WHITEBOARD: {
+      // 화이트보드 — 프레임 + 보드 + 마커
+      const isWall = (row === 0 || MAP[row-1]?.[col] === T.WALL_TOP);
+      ctx.fillStyle = isWall ? '#5a5a6e' : '#9aabb8';
+      ctx.fillRect(x,y,S,S);
+      if (isWall) {
+        // 벽 텍스처
+        ctx.strokeStyle = '#505064'; ctx.lineWidth = 0.5;
+        ctx.beginPath(); ctx.moveTo(x,y+10); ctx.lineTo(x+S,y+10); ctx.stroke();
+      }
+      // 보드
+      shadow(x+3, y+S-14, S-6, 12);
+      ctx.fillStyle = '#eee'; ctx.fillRect(x+3,y+S-14,S-6,12);
+      ctx.fillStyle = '#ddd'; ctx.fillRect(x+4,y+S-13,S-8,10);
+      // 글씨 흔적
+      ctx.fillStyle = '#bbb';
+      ctx.fillRect(x+6,y+S-11,8,1); ctx.fillRect(x+6,y+S-8,12,1);
+      ctx.fillStyle = '#c44'; ctx.fillRect(x+6,y+S-5,5,1);
+      // 프레임
+      ctx.strokeStyle = '#888'; ctx.lineWidth = 1;
+      ctx.strokeRect(x+3,y+S-14,S-6,12);
+      break;
+    }
+    case T.VENDING: {
+      // 자판기 — 본체 + 디스플레이 + 상품 + 투입구
+      shadow(x+2, y+1, S-4, S-2);
+      ctx.fillStyle = '#3a3a4a'; ctx.fillRect(x+2,y+1,S-4,S-2);
+      // 상단 라벨
+      ctx.fillStyle = '#e74c3c'; ctx.fillRect(x+4,y+2,S-8,5);
+      ctx.fillStyle = '#fff'; ctx.font = '4px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('DRINK', x+S/2, y+6);
+      // 상품 칸
+      ctx.fillStyle = '#2a2a3a'; ctx.fillRect(x+4,y+8,S-8,12);
+      // 음료 캔들
+      const cans = ['#e74c3c','#3498db','#2ecc71','#f39c12'];
+      cans.forEach((c,i) => {
+        ctx.fillStyle = c;
+        ctx.fillRect(x+5+i*5,y+9,4,5);
+        ctx.fillRect(x+5+i*5,y+15,4,4);
+      });
+      // 투입구
+      ctx.fillStyle = '#222'; ctx.fillRect(x+S-10,y+22,6,3);
+      // 배출구
+      ctx.fillStyle = '#1a1a2a'; ctx.fillRect(x+4,y+25,S-8,4);
+      ctx.fillStyle = '#333'; ctx.fillRect(x+5,y+26,S-10,2);
+      break;
+    }
+    case T.COUNTER: {
+      // 카운터 — 상판 + 본체 + 앞면
+      shadow(x, y+3, S, S-5);
+      ctx.fillStyle = '#7b5b3a'; ctx.fillRect(x,y+6,S,S-8);
+      ctx.fillStyle = '#8b6b4a'; ctx.fillRect(x,y+3,S,5);
+      ctx.fillStyle = '#9b7b5a'; ctx.fillRect(x,y+3,S,2);
+      // 나무결
+      ctx.fillStyle = 'rgba(0,0,0,0.05)';
+      ctx.fillRect(x+2,y+10,S-4,1); ctx.fillRect(x+2,y+18,S-4,1);
+      // 하이라이트
+      ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(x+1,y+3,S-2,1);
+      break;
+    }
+    case T.DIVIDER: {
+      // 칸막이 — 유리 파티션
+      ctx.fillStyle = '#888'; ctx.fillRect(x+13,y,2,S); ctx.fillRect(x+17,y,2,S);
+      ctx.fillStyle = 'rgba(180,210,240,0.15)'; ctx.fillRect(x+15,y,2,S);
+      // 프레임
+      ctx.fillStyle = '#777';
+      ctx.fillRect(x+12,y,8,2); ctx.fillRect(x+12,y+S-2,8,2);
+      break;
+    }
   }
 }
 
 // 구역 라벨 그리기
 function drawZoneLabels() {
-  ctx.font = 'bold 11px Segoe UI';
-  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  ctx.font = 'bold 10px Segoe UI';
   ctx.textAlign = 'center';
-  ctx.fillText('업무 구역', 5*TILE, 16*TILE+20);
-  ctx.fillText('회의실', 25.5*TILE, 1*TILE-4);
-  ctx.fillText('카페 / 휴게실', 25.5*TILE, 10*TILE-4);
-  ctx.fillText('라운지', 14.5*TILE, 1*TILE-4);
+
+  // 반투명 배경 + 텍스트
+  const labels = [
+    { text: '업무 구역', x: 5*TILE, y: 16*TILE+16 },
+    { text: '회의실', x: 25.5*TILE, y: 1.5*TILE },
+    { text: '카페', x: 25.5*TILE, y: 10.5*TILE },
+    { text: '라운지', x: 14.5*TILE, y: 1.5*TILE },
+  ];
+  labels.forEach(l => {
+    const tw = ctx.measureText(l.text).width;
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+    ctx.fillRect(l.x - tw/2 - 6, l.y - 9, tw + 12, 14);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillText(l.text, l.x, l.y);
+  });
 }
 
 function drawMap() {
