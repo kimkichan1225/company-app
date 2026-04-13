@@ -22,7 +22,8 @@
       "preload.js",
       "work.html",
       "rest.html",
-      "pixelated-cartoon-boy.svg"
+      "pixelated-cartoon-boy.svg",
+      "version.json"
     ]
   },
   "devDependencies": {

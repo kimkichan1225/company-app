@@ -1,6 +1,11 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+const { execFile } = require('child_process');
+
+const CURRENT_VERSION = '1.0.0';
+const VERSION_URL = 'https://raw.githubusercontent.com/kimkichan1225/company-app/main/version.json';
 
 let workWin = null;   // 일하는 중 (데스크탑 펫)
 let restWin = null;   // 휴식 중 (소통 창)
@@ -9,6 +14,102 @@ let currentMode = 'work';
 
 // SVG 파일 경로
 const svgPath = path.join(__dirname, 'pixelated-cartoon-boy.svg');
+
+// ── 자동 업데이트 ──
+function httpGet(url) {
+  return new Promise((resolve, reject) => {
+    const get = (u) => {
+      https.get(u, { headers: { 'User-Agent': 'FitCharacter' } }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          get(res.headers.location);
+          return;
+        }
+        const chunks = [];
+        res.on('data', (chunk) => chunks.push(chunk));
+        res.on('end', () => resolve({ statusCode: res.statusCode, body: Buffer.concat(chunks) }));
+      }).on('error', reject);
+    };
+    get(url);
+  });
+}
+
+function downloadFile(url, dest) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(dest);
+    const get = (u) => {
+      https.get(u, { headers: { 'User-Agent': 'FitCharacter' } }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          get(res.headers.location);
+          return;
+        }
+        res.pipe(file);
+        file.on('finish', () => file.close(resolve));
+      }).on('error', (err) => {
+        fs.unlink(dest, () => {});
+        reject(err);
+      });
+    };
+    get(url);
+  });
+}
+
+async function checkForUpdate() {
+  try {
+    const res = await httpGet(VERSION_URL);
+    if (res.statusCode !== 200) return;
+
+    const remote = JSON.parse(res.body.toString());
+    if (remote.version === CURRENT_VERSION) return;
+
+    // 업데이트 가능한 윈도우 찾기
+    const parentWin = workWin || restWin;
+    const result = await dialog.showMessageBox(parentWin, {
+      type: 'info',
+      title: '업데이트',
+      message: `새 버전 ${remote.version}이 있습니다. (현재 ${CURRENT_VERSION})\n업데이트 하시겠습니까?`,
+      buttons: ['업데이트', '나중에'],
+      defaultId: 0,
+    });
+
+    if (result.response !== 0) return;
+
+    // ZIP 다운로드
+    const tmpDir = app.getPath('temp');
+    const zipPath = path.join(tmpDir, 'fitcharacter_update.zip');
+    const extractDir = path.join(tmpDir, 'fitcharacter_update');
+
+    await downloadFile(remote.downloadUrl, zipPath);
+
+    // 업데이트 배치 스크립트 작성
+    const appDir = path.dirname(app.getPath('exe'));
+    const batPath = path.join(tmpDir, 'fitcharacter_update.bat');
+    const exePath = app.getPath('exe');
+
+    const batContent = `@echo off
+chcp 65001 >nul
+echo Updating FitCharacter...
+timeout /t 2 /nobreak >nul
+rd /s /q "${extractDir}" 2>nul
+mkdir "${extractDir}"
+powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force"
+for /d %%i in ("${extractDir}\\*") do (
+  xcopy /s /e /y "%%i\\*" "${appDir}\\" >nul
+)
+del "${zipPath}" 2>nul
+rd /s /q "${extractDir}" 2>nul
+start "" "${exePath}"
+del "%~f0"
+`;
+
+    fs.writeFileSync(batPath, batContent, 'utf8');
+
+    // 배치 실행 후 앱 종료
+    execFile('cmd.exe', ['/c', 'start', '', '/min', batPath], { detached: true, stdio: 'ignore' });
+    app.quit();
+  } catch (err) {
+    console.error('업데이트 확인 실패:', err.message);
+  }
+}
 
 function createWorkWindow() {
   const display = screen.getPrimaryDisplay();
@@ -35,12 +136,13 @@ function createWorkWindow() {
   workWin.loadFile('work.html');
   workWin.setIgnoreMouseEvents(false);
 
-  // 화면 정보 전달
+  // 화면 정보 전달 + 업데이트 체크
   workWin.webContents.on('did-finish-load', () => {
     workWin.webContents.send('screen-bounds', {
       width: display.workAreaSize.width,
       height: display.workAreaSize.height,
     });
+    checkForUpdate();
   });
 
   workWin.on('closed', () => {
