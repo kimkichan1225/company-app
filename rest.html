@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Fit Character - 휴식 중</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%;
+    height: 100%;
+    font-family: 'Segoe UI', sans-serif;
+    background: #1a1a2e;
+    color: #ecf0f1;
+    overflow: hidden;
+  }
+
+  /* 타이틀바 (frameless 대응) */
+  .titlebar {
+    height: 36px;
+    background: #16213e;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+  .titlebar-title {
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0.8;
+  }
+  .titlebar-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  .titlebar-status .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f39c12;
+  }
+  .titlebar-buttons {
+    display: flex;
+    gap: 4px;
+    -webkit-app-region: no-drag;
+  }
+  .titlebar-buttons button {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: #ecf0f1;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .titlebar-buttons button:hover { background: rgba(255,255,255,0.1); }
+  .titlebar-buttons .close:hover { background: #e74c3c; }
+
+  /* 메인 레이아웃 */
+  .main {
+    display: flex;
+    height: calc(100% - 36px);
+  }
+
+  /* 좌측: 캐릭터 라운지 */
+  .lounge {
+    flex: 1;
+    position: relative;
+    background: linear-gradient(180deg, #2c3e50 0%, #27ae60 80%, #1e8449 100%);
+    overflow: hidden;
+    min-width: 0;
+  }
+  .lounge-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    font-size: 12px;
+    background: rgba(0,0,0,0.3);
+    padding: 4px 10px;
+    border-radius: 10px;
+    z-index: 5;
+  }
+
+  /* 라운지 바닥 */
+  .lounge-ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background: #1e8449;
+  }
+
+  /* 내 캐릭터 */
+  .my-character {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    image-rendering: pixelated;
+  }
+
+  /* 동료 캐릭터 (추후 서버 연동) */
+  .peer-character {
+    position: absolute;
+    bottom: 60px;
+    image-rendering: pixelated;
+    opacity: 0.9;
+  }
+  .peer-name {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    background: rgba(0,0,0,0.5);
+    padding: 2px 8px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
+  /* 우측: 채팅 */
+  .chat-panel {
+    width: 280px;
+    background: #16213e;
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid #0f3460;
+  }
+  .chat-header {
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-bottom: 1px solid #0f3460;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .online-count {
+    font-size: 12px;
+    background: #27ae60;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 400;
+  }
+
+  /* 메시지 영역 */
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .chat-messages::-webkit-scrollbar { width: 4px; }
+  .chat-messages::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+  .message {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  .message-avatar {
+    width: 32px;
+    height: 48px;
+    image-rendering: pixelated;
+    flex-shrink: 0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .message-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .message-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3498db;
+    margin-bottom: 2px;
+  }
+  .message-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: #ddd;
+    word-break: break-word;
+  }
+  .message-time {
+    font-size: 10px;
+    opacity: 0.4;
+    margin-top: 2px;
+  }
+
+  .system-message {
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.4;
+    padding: 4px;
+  }
+
+  /* 입력 영역 */
+  .chat-input-area {
+    padding: 12px;
+    border-top: 1px solid #0f3460;
+    display: flex;
+    gap: 8px;
+  }
+  .chat-input {
+    flex: 1;
+    background: #0f3460;
+    border: 1px solid #1a4a8a;
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #ecf0f1;
+    font-size: 13px;
+    outline: none;
+  }
+  .chat-input::placeholder { color: #666; }
+  .chat-input:focus { border-color: #3498db; }
+  .chat-send {
+    background: #3498db;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .chat-send:hover { background: #2980b9; }
+
+  /* 하단 바 */
+  .bottom-bar {
+    height: 40px;
+    background: #0f3460;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 12px;
+  }
+  .back-to-work {
+    background: #27ae60;
+    border: none;
+    color: white;
+    padding: 6px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .back-to-work:hover { background: #2ecc71; }
+  .status-text {
+    font-size: 12px;
+    opacity: 0.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- 타이틀바 -->
+<div class="titlebar">
+  <span class="titlebar-title">Fit Character</span>
+  <div class="titlebar-status">
+    <span class="dot"></span>
+    <span>휴식 중</span>
+  </div>
+  <div class="titlebar-buttons">
+    <button class="minimize" id="btnMinimize">─</button>
+    <button class="close" id="btnClose">✕</button>
+  </div>
+</div>
+
+<!-- 메인 -->
+<div class="main">
+  <!-- 캐릭터 라운지 -->
+  <div class="lounge" id="lounge">
+    <div class="lounge-label">라운지</div>
+    <div class="lounge-ground"></div>
+    <canvas class="my-character" id="myCharacter" width="128" height="192"></canvas>
+
+    <!-- 예시 동료 (추후 서버에서 동적 생성) -->
+  </div>
+
+  <!-- 채팅 -->
+  <div class="chat-panel">
+    <div class="chat-header">
+      <span>채팅</span>
+      <span class="online-count" id="onlineCount">1명 접속</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div class="system-message">휴식 모드에 오신 걸 환영합니다!</div>
+      <div class="system-message">서버 연결 시 동료들과 소통할 수 있습니다.</div>
+    </div>
+    <div class="chat-input-area">
+      <input type="text" class="chat-input" id="chatInput" placeholder="메시지를 입력하세요..." />
+      <button class="chat-send" id="chatSend">전송</button>
+    </div>
+  </div>
+</div>
+
+<!-- 하단 바 -->
+<div class="bottom-bar">
+  <span class="status-text">서버 미연결 (로컬 모드)</span>
+  <button class="back-to-work" id="btnWork">일하기 모드로</button>
+</div>
+
+<script>
+  const myCanvas = document.getElementById('myCharacter');
+  const myCtx = myCanvas.getContext('2d');
+  const chatMessages = document.getElementById('chatMessages');
+  const chatInput = document.getElementById('chatInput');
+  const chatSend = document.getElementById('chatSend');
+
+  // 스프라이트 설정
+  const FRAME_W = 64, FRAME_H = 96, COLS = 4, SCALE = 2;
+  const ROW_FRONT = 0, ROW_LEFT = 2, ROW_RIGHT = 3;
+  let spriteImg = null;
+  let frameIndex = 0;
+  let loungeState = 'idle'; // idle, walk
+  let facingDir = 'right';
+  let charX = 0;
+  let stateTimer = 0;
+  let stateDuration = 100;
+
+  // SVG 로드
+  async function loadSprite() {
+    const svgText = await window.electronAPI.readSVG();
+    const blob = new Blob([svgText], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    spriteImg = new Image();
+    spriteImg.onload = startAnimation;
+    spriteImg.src = url;
+  }
+
+  // 라운지 내 캐릭터 위치 초기화
+  function initPosition() {
+    const lounge = document.getElementById('lounge');
+    charX = (lounge.clientWidth - 128) / 2;
+    myCanvas.style.left = charX + 'px';
+    myCanvas.style.transform = 'none';
+  }
+
+  function drawFrame() {
+    myCtx.clearRect(0, 0, 128, 192);
+    if (!spriteImg) return;
+
+    let row = ROW_FRONT;
+    if (loungeState === 'walk') {
+      row = (facingDir === 'left') ? ROW_LEFT : ROW_RIGHT;
+    }
+
+    const sx = (frameIndex % COLS) * FRAME_W;
+    const sy = row * FRAME_H;
+    myCtx.imageSmoothingEnabled = false;
+    myCtx.drawImage(spriteImg, sx, sy, FRAME_W, FRAME_H, 0, 0, 128, 192);
+  }
+
+  function pickState() {
+    if (Math.random() < 0.5) {
+      loungeState = 'walk';
+      facingDir = Math.random() < 0.5 ? 'left' : 'right';
+      stateDuration = 60 + Math.floor(Math.random() * 120);
+    } else {
+      loungeState = 'idle';
+      stateDuration = 40 + Math.floor(Math.random() * 80);
+    }
+    stateTimer = 0;
+    frameIndex = 0;
+  }
+
+  let animInterval = null;
+  function startAnimation() {
+    initPosition();
+    pickState();
+    animInterval = setInterval(() => {
+      frameIndex++;
+      stateTimer++;
+
+      if (loungeState === 'walk') {
+        const lounge = document.getElementById('lounge');
+        const maxX = lounge.clientWidth - 128;
+        const dir = (facingDir === 'left') ? -2 : 2;
+        charX += dir;
+        if (charX <= 0) { charX = 0; facingDir = 'right'; }
+        if (charX >= maxX) { charX = maxX; facingDir = 'left'; }
+        myCanvas.style.left = charX + 'px';
+      }
+
+      if (stateTimer >= stateDuration) pickState();
+      drawFrame();
+    }, 150);
+  }
+
+  // 채팅 (로컬 모드 - 추후 소켓 연동)
+  function addMessage(name, text) {
+    const now = new Date();
+    const time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    const msgEl = document.createElement('div');
+    msgEl.className = 'message';
+    msgEl.innerHTML = `
+      <div class="message-content">
+        <div class="message-name">${name}</div>
+        <div class="message-text">${text}</div>
+        <div class="message-time">${time}</div>
+      </div>
+    `;
+    chatMessages.appendChild(msgEl);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    addMessage('나', text);
+    chatInput.value = '';
+  }
+
+  chatSend.addEventListener('click', sendMessage);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  // 버튼들
+  document.getElementById('btnWork').addEventListener('click', () => {
+    window.electronAPI.switchToWork();
+  });
+  document.getElementById('btnClose').addEventListener('click', () => {
+    window.electronAPI.switchToWork();
+  });
+  document.getElementById('btnMinimize').addEventListener('click', () => {
+    // 최소화는 Electron에서 처리 필요 - 일단 숨김
+    window.electronAPI.switchToWork();
+  });
+
+  // 시작
+  loadSprite();
+</script>
+</body>
+</html>

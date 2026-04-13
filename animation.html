@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>캐릭터 애니메이션</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #2c3e50;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+    color: #ecf0f1;
+  }
+  h1 { margin-bottom: 20px; font-size: 1.4rem; }
+  .stage {
+    width: 500px;
+    height: 400px;
+    background: #27ae60;
+    border: 4px solid #1e8449;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+  .character {
+    width: 64px;
+    height: 96px;
+    background-image: url('pixelated-cartoon-boy.svg');
+    background-size: 256px 384px;
+    position: absolute;
+    top: 150px;
+    left: 218px;
+    image-rendering: pixelated;
+    transform: scale(2);
+    transform-origin: top left;
+  }
+  .info {
+    margin-top: 20px;
+    text-align: center;
+    font-size: 0.9rem;
+    opacity: 0.7;
+  }
+  .direction-indicator {
+    margin-top: 12px;
+    font-size: 1.1rem;
+  }
+</style>
+</head>
+<body>
+  <h1>픽셀 캐릭터 애니메이션</h1>
+  <div class="stage">
+    <div class="character" id="character"></div>
+  </div>
+  <div class="direction-indicator" id="dirIndicator">대기 중...</div>
+  <div class="info">방향키(↑↓←→)로 캐릭터를 움직여보세요</div>
+
+<script>
+  const character = document.getElementById('character');
+  const dirIndicator = document.getElementById('dirIndicator');
+
+  // 스프라이트 시트 설정
+  const FRAME_W = 64;
+  const FRAME_H = 96;
+  const COLS = 4;
+  const ANIM_SPEED = 150; // ms
+
+  // 행별 방향: 0=앞, 1=뒤, 2=왼쪽, 3=오른쪽
+  const ROW_MAP = {
+    ArrowDown: 0,
+    ArrowUp: 1,
+    ArrowLeft: 2,
+    ArrowRight: 3
+  };
+  const DIR_LABELS = ['↓ 앞 보고 걷기', '↑ 뒤 보고 걷기', '← 왼쪽 보고 걷기', '→ 오른쪽 보고 걷기'];
+
+  let currentRow = 0;
+  let currentFrame = 0;
+  let animTimer = null;
+  let keysPressed = new Set();
+
+  // 캐릭터 위치
+  let posX = 218;
+  let posY = 150;
+  const MOVE_SPEED = 3;
+  const STAGE_W = 500;
+  const STAGE_H = 400;
+  // scale(2)이므로 실제 표시 크기는 128x192
+  const CHAR_DISPLAY_W = 128;
+  const CHAR_DISPLAY_H = 192;
+
+  function updateSprite() {
+    const bgX = -(currentFrame * FRAME_W);
+    const bgY = -(currentRow * FRAME_H);
+    character.style.backgroundPosition = `${bgX}px ${bgY}px`;
+  }
+
+  function startAnim(row) {
+    if (currentRow === row && animTimer) return;
+    currentRow = row;
+    currentFrame = 0;
+    dirIndicator.textContent = DIR_LABELS[row];
+    if (animTimer) clearInterval(animTimer);
+    animTimer = setInterval(() => {
+      currentFrame = (currentFrame + 1) % COLS;
+      updateSprite();
+    }, ANIM_SPEED);
+    updateSprite();
+  }
+
+  function stopAnim() {
+    if (animTimer) {
+      clearInterval(animTimer);
+      animTimer = null;
+    }
+    currentFrame = 0;
+    updateSprite();
+    dirIndicator.textContent = '대기 중...';
+  }
+
+  function moveCharacter() {
+    if (keysPressed.has('ArrowLeft'))  posX = Math.max(0, posX - MOVE_SPEED);
+    if (keysPressed.has('ArrowRight')) posX = Math.min(STAGE_W - CHAR_DISPLAY_W, posX + MOVE_SPEED);
+    if (keysPressed.has('ArrowUp'))    posY = Math.max(0, posY - MOVE_SPEED);
+    if (keysPressed.has('ArrowDown'))  posY = Math.min(STAGE_H - CHAR_DISPLAY_H, posY + MOVE_SPEED);
+    character.style.left = posX + 'px';
+    character.style.top = posY + 'px';
+  }
+
+  // 이동 루프
+  let moveTimer = setInterval(moveCharacter, 16);
+
+  document.addEventListener('keydown', (e) => {
+    if (!ROW_MAP.hasOwnProperty(e.key)) return;
+    e.preventDefault();
+    keysPressed.add(e.key);
+    // 마지막 누른 방향키로 애니메이션 설정
+    startAnim(ROW_MAP[e.key]);
+  });
+
+  document.addEventListener('keyup', (e) => {
+    keysPressed.delete(e.key);
+    if (keysPressed.size === 0) {
+      stopAnim();
+    } else {
+      // 아직 누르고 있는 키가 있으면 그 방향으로
+      const remaining = [...keysPressed].pop();
+      if (ROW_MAP.hasOwnProperty(remaining)) {
+        startAnim(ROW_MAP[remaining]);
+      }
+    }
+  });
+
+  // 초기 스프라이트 표시
+  updateSprite();
+</script>
+</body>
+</html>

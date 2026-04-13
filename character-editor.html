@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>캐릭터 색상 에디터</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: 'Segoe UI', sans-serif;
+    color: #ecf0f1;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  h1 { margin-bottom: 8px; font-size: 1.5rem; }
+  .subtitle { font-size: 0.85rem; opacity: 0.6; margin-bottom: 20px; }
+
+  .main {
+    display: flex;
+    gap: 30px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* 미리보기 영역 */
+  .preview-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .stage {
+    width: 320px;
+    height: 300px;
+    background: #27ae60;
+    border: 3px solid #1e8449;
+    border-radius: 12px;
+    position: relative;
+    overflow: hidden;
+    image-rendering: pixelated;
+  }
+  .character {
+    width: 64px;
+    height: 96px;
+    background-size: 256px 384px;
+    position: absolute;
+    top: 50px;
+    left: 96px;
+    image-rendering: pixelated;
+    transform: scale(2);
+    transform-origin: top left;
+  }
+  .controls-hint {
+    font-size: 0.8rem;
+    opacity: 0.5;
+  }
+
+  /* 색상 패널 */
+  .color-panel {
+    background: #16213e;
+    padding: 24px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 260px;
+  }
+  .color-panel h2 {
+    font-size: 1.1rem;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 8px;
+  }
+  .color-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .color-row label {
+    font-size: 0.95rem;
+    flex: 1;
+  }
+  .color-row input[type="color"] {
+    width: 50px;
+    height: 34px;
+    border: 2px solid #444;
+    border-radius: 6px;
+    cursor: pointer;
+    background: none;
+    padding: 2px;
+  }
+  .color-row .hex-value {
+    font-size: 0.75rem;
+    opacity: 0.5;
+    font-family: monospace;
+    width: 60px;
+    text-align: right;
+  }
+
+  /* 버튼들 */
+  .btn-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+  .btn-save {
+    background: #27ae60;
+    color: white;
+  }
+  .btn-save:hover { background: #2ecc71; }
+  .btn-reset {
+    background: #555;
+    color: white;
+  }
+  .btn-reset:hover { background: #777; }
+  .btn-preset {
+    background: #8e44ad;
+    color: white;
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+  .btn-preset:hover { background: #9b59b6; }
+
+  .preset-section { margin-top: 4px; }
+  .preset-section h3 {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    opacity: 0.7;
+  }
+
+  .direction-indicator {
+    font-size: 0.95rem;
+    margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+  <h1>캐릭터 색상 에디터</h1>
+  <p class="subtitle">색상을 변경하고 방향키로 움직여보세요</p>
+
+  <div class="main">
+    <!-- 미리보기 -->
+    <div class="preview-area">
+      <div class="stage" id="stage">
+        <div class="character" id="character"></div>
+      </div>
+      <div class="direction-indicator" id="dirIndicator">방향키로 이동</div>
+      <div class="controls-hint">↑↓←→ 이동</div>
+    </div>
+
+    <!-- 색상 설정 -->
+    <div class="color-panel">
+      <h2>색상 설정</h2>
+
+      <div class="color-row">
+        <label>피부</label>
+        <input type="color" id="colorSkin" value="#fee7d5">
+        <span class="hex-value" id="hexSkin">#fee7d5</span>
+      </div>
+      <div class="color-row">
+        <label>머리카락</label>
+        <input type="color" id="colorHair" value="#762f08">
+        <span class="hex-value" id="hexHair">#762f08</span>
+      </div>
+      <div class="color-row">
+        <label>상의</label>
+        <input type="color" id="colorTop" value="#df2210">
+        <span class="hex-value" id="hexTop">#df2210</span>
+      </div>
+      <div class="color-row">
+        <label>바지</label>
+        <input type="color" id="colorPants" value="#10a4df">
+        <span class="hex-value" id="hexPants">#10a4df</span>
+      </div>
+      <div class="color-row">
+        <label>신발</label>
+        <input type="color" id="colorShoes" value="#bb7750">
+        <span class="hex-value" id="hexShoes">#bb7750</span>
+      </div>
+
+      <div class="preset-section">
+        <h3>프리셋</h3>
+        <div class="btn-group">
+          <button class="btn-preset" onclick="applyPreset('original')">원본</button>
+          <button class="btn-preset" onclick="applyPreset('girl1')">소녀 A</button>
+          <button class="btn-preset" onclick="applyPreset('girl2')">소녀 B</button>
+          <button class="btn-preset" onclick="applyPreset('knight')">기사</button>
+          <button class="btn-preset" onclick="applyPreset('wizard')">마법사</button>
+          <button class="btn-preset" onclick="applyPreset('elf')">엘프</button>
+        </div>
+      </div>
+
+      <div class="btn-group">
+        <button class="btn-save" onclick="downloadSVG()">SVG 다운로드</button>
+        <button class="btn-reset" onclick="applyPreset('original')">초기화</button>
+      </div>
+    </div>
+  </div>
+
+<script type="text/plain" id="svgData"><?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="384" viewBox="0 0 256 384">
+  
+  <path d="M16.575 370.575v-2h-4v-12h-4v-8h4v-8h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm72 0v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm56 0v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm28-20v-2h-4v4h4v-2zm44 20v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm-192-96v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm56 0v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm8-20v-2h-4v4h4v-2zm64 20v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm56 0v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v8h4v8h-4v12h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm-192-92v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm84 0v-2h-4v-4h-12v-4h-8v-4h-4v-8h4v-8h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h4v8h-4v4h-4v24h-4v4h-12v-2zm44 0v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm64 0v-2h-4v-24h-4v-4h-4v-8h4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v8h4v8h-4v4h-8v4h-12v4h-4v4h-12v-2zm-192-96v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm84 0v-2h-4v-4h-16v-4h-4v-12h-4v-8h4v-8h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h4v8h-4v4h-4v20h-4v4h-12v-2zm44 0v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm64 0v-2h-4v-20h-4v-4h-4v-8h4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v8h4v8h-4v12h-4v4h-16v4h-4v4h-12v-2z" fill="#fee7d5"/>
+  <path d="M16.575 370.575v-2h-4v-12h-4v-8h4v-8h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm0-18v-4h-4v8h4v-4zm32 0v-4h-8v-4h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h4v4h20v8h8v-4zm-8-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm12-14v-4h-8v8h8v-4zm4-14v-2h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm40 38v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm8-18v-4h16v4h4v4h4v-8h-8v-4h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h8v4h-8v8h8v-4zm16-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm12-14v-4h-8v8h8v-4zm4-14v-2h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm-208-58v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm12-14v-4h-8v8h8v-4zm8-14v-2h4v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm4-16v-2h4v-4h16v8h8v-8h-8v-4h8v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h-8v8h4v-2zm0-18v-4h4v8h-4v-4zm68 34v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm12-14v-4h-8v8h8v-4zm8-14v-2h4v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v8h4v8h-4v12h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm8-18v-4h20v-4h4v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h-8v8h8v-4zm-4-16v-4h4v8h-4v-4zm32 16v-4h-4v8h4v-4zm-228-74v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm-4-22v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm-16-10v-2h4v-4h4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h4v4h4v4h16v-2zm60 32v-2h-4v-4h-12v-4h-8v-4h-4v-8h4v-8h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h4v8h-4v4h-4v24h-4v4h-12v-2zm-16-18v-4h-8v8h8v-4zm20-10v-2h4v-4h4v4h8v-8h-4v4h-4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h4v4h4v4h16v-2zm40 28v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm-4-22v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm-16-10v-2h4v-4h4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h4v4h4v4h16v-2zm40 32v-2h-4v-24h-4v-4h-4v-8h4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v8h4v8h-4v4h-8v4h-12v4h-4v4h-12v-2zm36-18v-4h-8v8h8v-4zm-12-10v-2h4v-4h4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h-4v-4h-4v8h8v-4h4v4h4v4h16v-2zm-216-68v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm0-24v-6h-4v4h-4v8h8v-6zm40 2v-4h-4v-4h-4v12h8v-4zm-16-10v-2h4v-4h4v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h4v4h4v4h16v-2zm-16-6v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm64 38v-2h-4v-4h-16v-4h-4v-12h-4v-8h4v-8h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h4v8h-4v4h-4v20h-4v4h-12v-2zm-12-22v-4h16v-4h4v-4h4v4h4v4h4v-8h-8v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h4v4h4v4h-8v-4h-4v4h4v8h8v-4zm0-12v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm44 34v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm0-24v-6h-4v4h-4v8h8v-6zm40 2v-4h-4v-4h-4v12h8v-4zm-16-10v-2h4v-4h4v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h4v4h4v4h16v-2zm-16-6v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm44 38v-2h-4v-20h-4v-4h-4v-8h4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v8h4v8h-4v12h-4v4h-16v4h-4v4h-12v-2zm32-22v-4h4v-4h-4v4h-8v-4h4v-4h4v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h-8v8h4v-4h4v-4h4v4h4v4h16v8h8v-4zm-24-12v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4z" fill="#10a4df"/>
+  <path d="M16.575 370.575v-2h-4v-12h-4v-8h4v-8h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm16-8v-2h-8v4h8v-2zm8 0v-2h-4v4h4v-2zm-24-10v-4h-4v8h4v-4zm32 0v-4h-8v-4h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h4v4h20v8h8v-4zm-8-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm12-20v-2h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm40 38v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm16-8v-2h-8v4h8v-2zm8 0v-2h-4v4h4v-2zm-16-10v-4h16v4h4v4h4v-8h-8v-4h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h8v4h-8v8h8v-4zm16-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm12-20v-2h4v-4h4v-12h-4v-4h-8v4h-4v4h-4v-4h-4v8h-4v4h-4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm-208-58v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm16-20v-2h4v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm12-8v-2h-4v4h4v-2zm12 0v-2h-8v4h8v-2zm-20-8v-2h4v-4h16v8h8v-8h-8v-4h8v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h-8v8h4v-2zm0-18v-4h4v8h-4v-4zm68 34v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm16-20v-2h4v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v8h4v8h-4v12h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm12-8v-2h-4v4h4v-2zm12 0v-2h-8v4h8v-2zm-16-10v-4h20v-4h4v-4h-4v-4h-4v-4h-4v4h-8v-4h-4v-4h-4v-4h-4v16h4v4h4v4h-8v8h8v-4zm-4-16v-4h4v8h-4v-4zm32 16v-4h-4v8h4v-4zm-228-74v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h-4v4h-24v-4h-4v12h12v-2zm-16-14v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm-16-10v-2h4v-4h4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h4v4h4v4h16v-2zm60 32v-2h-4v-4h-12v-4h-8v-4h-4v-8h4v-8h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h4v8h-4v4h-4v24h-4v4h-12v-2zm12-12v-6h-4v4h-24v-8h-8v8h8v4h16v4h12v-6zm-8-16v-2h4v-4h4v4h8v-8h-4v4h-4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h4v4h4v4h16v-2zm40 28v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h-4v4h-24v-4h-4v12h12v-2zm-16-14v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm-16-10v-2h4v-4h4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h4v4h4v4h16v-2zm40 32v-2h-4v-24h-4v-4h-4v-8h4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v8h4v8h-4v4h-8v4h-12v4h-4v4h-12v-2zm12-8v-2h16v-4h8v-8h-8v8h-24v-4h-4v12h12v-2zm12-20v-2h4v-4h4v-4h-4v4h-8v4h-8v-4h-8v-4h-4v4h-4v-4h-4v8h8v-4h4v4h4v4h16v-2zm-216-68v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h8v-8h-4v-4h-4v12h-4v4h-24v-4h-4v-12h-4v4h-4v8h8v12h12v-2zm12-24v-2h4v-4h4v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h4v4h4v4h16v-2zm-16-6v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm64 38v-2h-4v-4h-16v-4h-4v-12h-4v-8h4v-8h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h4v8h-4v4h-4v20h-4v4h-12v-2zm12-12v-6h-8v4h-4v8h12v-6zm-16 0v-2h-16v4h16v-2zm-8-10v-4h16v-4h4v-4h4v4h4v4h4v-8h-8v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h4v4h4v4h-8v-4h-4v4h4v8h8v-4zm0-12v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm44 34v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h8v-8h-4v-4h-4v12h-4v4h-24v-4h-4v-12h-4v4h-4v8h8v12h12v-2zm12-24v-2h4v-4h4v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h4v4h4v4h16v-2zm-16-6v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm44 38v-2h-4v-20h-4v-4h-4v-8h4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v8h4v8h-4v12h-4v4h-16v4h-4v4h-12v-2zm12-10v-4h-4v-4h-8v12h12v-4zm20-2v-2h-16v4h16v-2zm0-10v-4h4v-4h-4v4h-8v-4h4v-4h4v-4h4v-8h-4v4h-20v-4h-8v-4h-4v4h-4v8h4v4h-8v8h4v-4h4v-4h4v4h4v4h16v8h8v-4zm-24-12v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4z" fill="#bb7750"/>
+  <path d="M16.575 370.575v-2h-4v-12h-4v-8h4v-8h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm16-8v-2h-8v4h8v-2zm8 0v-2h-4v4h4v-2zm-24-10v-4h-4v8h4v-4zm32 0v-4h-8v-4h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v8h8v-4zm-8-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm12-20v-2h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm40 38v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm16-8v-2h-8v4h8v-2zm8 0v-2h-4v4h4v-2zm-16-10v-4h16v4h4v4h4v-8h-8v-4h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h8v4h-8v8h8v-4zm16-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm12-20v-2h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm-208-58v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm16-20v-2h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm12-8v-2h-4v4h4v-2zm12 0v-2h-8v4h8v-2zm-20-8v-2h4v-4h16v8h8v-8h-8v-4h8v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h-8v8h4v-2zm0-18v-4h4v8h-4v-4zm68 34v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h-8v8h-4v4h4v-2zm16-20v-2h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v8h4v8h-4v12h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm12-8v-2h-4v4h4v-2zm12 0v-2h-8v4h8v-2zm-16-10v-4h20v-4h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h-8v8h8v-4zm-4-16v-4h4v8h-4v-4zm32 16v-4h-4v8h4v-4zm-228-74v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h-4v4h-24v-4h-4v12h12v-2zm-16-14v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm-16-10v-2h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h16v-2zm60 32v-2h-4v-4h-12v-4h-8v-4h-4v-8h4v-8h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h4v8h-4v4h-4v24h-4v4h-12v-2zm12-12v-6h-4v4h-24v-8h-8v8h8v4h16v4h12v-6zm-8-16v-2h4v-4h4v4h8v-8h-4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h16v-2zm8-8v-2h4v4h-4v-2zm32 36v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h-4v4h-24v-4h-4v12h12v-2zm-16-14v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm-16-10v-2h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h16v-2zm40 32v-2h-4v-24h-4v-4h-4v-8h4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v8h4v8h-4v4h-8v4h-12v4h-4v4h-12v-2zm12-8v-2h16v-4h8v-8h-8v8h-24v-4h-4v12h12v-2zm12-20v-2h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h-4v8h8v-4h4v4h4v4h16v-2zm-28-8v-2h4v4h-4v-2zm-188-60v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h8v-8h-4v-4h-4v12h-4v4h-24v-4h-4v-12h-4v4h-4v8h8v12h12v-2zm12-24v-2h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h16v-2zm-16-6v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm64 38v-2h-4v-4h-16v-4h-4v-12h-4v-8h4v-8h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h4v8h-4v4h-4v20h-4v4h-12v-2zm12-12v-6h-8v4h-4v8h12v-6zm-16 0v-2h-16v4h16v-2zm-8-10v-4h16v-4h4v-4h4v4h4v4h4v-8h-8v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h-8v-4h-4v4h4v8h8v-4zm0-12v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm44 34v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h8v-8h-4v-4h-4v12h-4v4h-24v-4h-4v-12h-4v4h-4v8h8v12h12v-2zm12-24v-2h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h16v-2zm-16-6v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4zm44 38v-2h-4v-20h-4v-4h-4v-8h4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v8h4v8h-4v12h-4v4h-16v4h-4v4h-12v-2zm12-10v-4h-4v-4h-8v12h12v-4zm20-2v-2h-16v4h16v-2zm0-10v-4h4v-4h-4v4h-8v-4h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h-8v8h4v-4h4v-4h4v4h4v4h16v8h8v-4zm-24-12v-4h4v8h-4v-4zm12 0v-4h4v8h-4v-4z" fill="#df2210"/>
+  <path d="M16.575 370.575v-2h-4v-12h-4v-8h4v-8h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm16-8v-2h4v4h4v-8h8v-8h-8v-4h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v8h-4v-4h-16v8h4v4h8v-2zm8-26v-4h4v8h-4v-4zm-24 16v-4h-4v8h4v-4zm72 18v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h4v-4h-4v4h-8v-4h-8v12h4v4h4v-2zm-4-6v-4h4v8h-4v-4zm16-14v-2h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm40 38v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm16-8v-2h4v4h4v-4h4v-4h4v-8h-8v-4h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h8v4h-8v8h8v8h8v-2zm-8-10v-4h16v4h4v4h-4v-4h-12v4h-4v-4zm16-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h-4v-8h4v-4h-4v4h-8v-4h-8v12h4v4h4v-2zm-4-6v-4h4v8h-4v-4zm16-14v-2h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm-208-58v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h4v-12h-8v4h-8v-4h-4v4h4v8h-4v4h4v-2zm8-6v-4h4v8h-4v-4zm8-14v-2h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm12-8v-2h4v4h8v-8h8v-8h-8v-4h8v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h-8v8h4v4h4v4h4v-2zm-8-8v-2h4v-4h16v8h-4v-4h-12v4h-4v-2zm0-18v-4h4v8h-4v-4zm68 34v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm4-8v-2h8v4h4v-4h4v-12h-8v4h-8v-4h-4v4h4v8h-4v4h4v-2zm8-6v-4h4v8h-4v-4zm8-14v-2h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v8h4v8h-4v12h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm12-8v-2h4v4h8v-4h4v-8h-16v4h-4v-8h20v-4h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h-8v8h8v8h4v-2zm-8-26v-4h4v8h-4v-4zm32 16v-4h-4v8h4v-4zm-228-74v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h-4v-4h4v-12h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v12h4v4h-4v12h12v-2zm-8-8v-2h24v4h-24v-2zm4-12v-2h-4v-4h4v4h16v-4h4v4h-4v4h-16v-2zm-12 6v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm44 22v-2h-4v-4h-12v-4h-8v-4h-4v-8h4v-8h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h4v8h-4v4h-4v24h-4v4h-12v-2zm12-12v-6h-4v-4h4v-8h8v-8h-4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v4h4v4h-8v8h8v4h16v4h12v-6zm-28-6v-4h4v-4h-4v-4h4v4h16v-4h4v-4h4v-4h4v4h-4v4h-4v4h-4v4h-16v4h20v4h-24v-4zm60 18v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h-4v-4h4v-12h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v12h4v4h-4v12h12v-2zm-8-8v-2h24v4h-24v-2zm4-12v-2h-4v-4h4v4h16v-4h4v4h-4v4h-16v-2zm-12 6v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm24 22v-2h-4v-24h-4v-4h-4v-8h4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v8h4v8h-4v4h-8v4h-12v4h-4v4h-12v-2zm12-8v-2h16v-4h8v-8h-8v-4h4v-4h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h-4v8h8v8h4v4h-4v12h12v-2zm-8-8v-2h20v-4h-16v-4h-4v-4h-4v-4h-4v-4h4v4h4v4h4v4h16v-4h4v4h-4v4h4v8h-24v-2zm-196-80v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h8v-8h-4v-4h-4v-4h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v4h-4v4h-4v8h8v12h12v-2zm-8-8v-2h-4v-8h4v8h24v-8h4v8h-4v4h-24v-2zm4-12v-2h-4v-4h4v-8h4v8h-4v4h16v-4h-4v-8h4v8h4v4h-4v4h-16v-2zm76 28v-2h-4v-4h-16v-4h-4v-12h-4v-8h4v-8h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h4v8h-4v4h-4v20h-4v4h-12v-2zm12-12v-6h-8v-4h8v-8h4v4h4v-8h-8v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h-8v-4h-4v4h4v8h8v-8h16v4h-12v4h12v4h-4v8h12v-6zm-8-16v-2h-4v-8h4v8h4v-4h4v4h-4v4h-4v-2zm-16-6v-4h4v8h-4v-4zm8 22v-2h-16v4h16v-2zm48 12v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-8v-2h8v4h12v-12h8v-8h-4v-4h-4v-4h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v4h-4v4h-4v8h8v12h12v-2zm-8-8v-2h-4v-8h4v8h24v-8h4v8h-4v4h-24v-2zm4-12v-2h-4v-4h4v-8h4v8h-4v4h16v-4h-4v-8h4v8h4v4h-4v4h-16v-2zm56 28v-2h-4v-20h-4v-4h-4v-8h4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v8h4v8h-4v12h-4v4h-16v4h-4v4h-12v-2zm12-10v-4h-4v-4h12v-4h-12v-4h16v8h8v-8h4v-4h-4v4h-8v-4h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h-8v8h4v-4h4v8h8v4h-8v12h12v-4zm-8-18v-2h-4v-4h4v4h4v-8h4v8h-4v4h-4v-2zm16-6v-4h4v8h-4v-4zm12 22v-2h-16v4h16v-2z" fill="#762f08"/>
+  <path d="M16.575 370.575v-2h-4v-12h-4v-8h4v-8h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm8-4v-2h8v-4h4v4h4v4h8v-4h4v-4h-8v4h-4v-8h8v-8h-8v-4h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v8h-4v-4h-16v8h-4v8h8v-2zm-4-4v-2h4v4h-4v-2zm20-26v-4h4v8h-4v-4zm-24 16v-4h-4v8h4v-4zm72 18v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm16-6v-4h-4v-8h4v-4h-4v4h-8v-4h-8v12h4v8h16v-4zm-12-2v-2h-4v-8h4v8h8v4h-8v-2zm12-20v-2h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm40 38v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v8h4v12h4v4h-4v4h-4v4h-8v-4h-4v-4h-4v4h-8v4h-8v-2zm8-4v-2h8v-4h4v4h4v4h8v-4h4v-4h-8v-4h4v-8h-8v-4h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h8v4h-8v8h8v8h-4v-4h-4v8h8v-2zm16-4v-2h4v4h-4v-2zm-16-10v-4h16v4h4v4h-4v-4h-12v4h-4v-4zm16-16v-4h4v8h-4v-4zm48 34v-2h-4v-8h-4v-12h4v-4h-4v-4h-4v-4h-4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v4h-4v12h-4v4h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-16v-2zm16-6v-4h-4v-8h4v-4h-4v4h-8v-4h-8v12h4v8h16v-4zm-12-2v-2h-4v-8h4v8h8v4h-8v-2zm12-20v-2h4v-4h4v-12h4v-4h-4v-8h-8v-4h-16v4h-8v8h-4v16h4v4h4v4h20v-2zm0-10v-4h4v8h-4v-4zm-208-58v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm16-6v-4h4v-12h-8v4h-8v-4h-4v4h4v8h-4v8h16v-4zm-12-2v-2h8v-8h4v8h-4v4h-8v-2zm16-20v-2h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h4v8h-4v4h4v8h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm8-4v-2h4v-4h4v4h8v4h8v-8h-4v4h-4v-8h8v-8h-8v-4h8v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h-8v8h4v4h-8v4h4v4h8v-2zm-4-4v-2h4v4h-4v-2zm0-8v-2h4v-4h16v8h-4v-4h-12v4h-4v-2zm0-18v-4h4v8h-4v-4zm68 34v-2h-4v-8h4v-4h-4v-8h4v-4h-4v-4h-4v-4h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v4h-4v4h-4v4h4v12h-4v8h-4v4h-16v-2zm16-6v-4h4v-12h-8v4h-8v-4h-4v4h4v8h-4v8h16v-4zm-12-2v-2h8v-8h4v8h-4v4h-8v-2zm16-20v-2h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h20v-2zm-24-10v-4h4v8h-4v-4zm60 38v-2h-4v-4h-4v-4h4v-12h4v-8h-4v-12h-4v-4h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h-4v8h4v8h-4v12h-4v4h-8v-4h-8v-4h-4v4h-4v4h-8v-2zm8-4v-2h4v-4h4v4h8v4h8v-8h-4v-8h-16v4h-4v-8h20v-4h4v-4h4v-16h-4v-8h-8v-4h-16v4h-8v8h-4v4h4v12h4v4h4v4h-8v8h8v8h-4v-4h-8v4h4v4h8v-2zm16-4v-2h4v4h-4v-2zm-20-26v-4h4v8h-4v-4zm32 16v-4h-4v8h4v-4zm-228-74v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-6v-4h8v8h12v-16h-4v-4h4v-12h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v12h4v4h-4v16h12v-4zm-8-10v-2h24v4h-24v-2zm4-12v-2h-4v-4h4v4h16v-4h4v4h-4v4h-16v-2zm-12 6v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm44 22v-2h-4v-4h-12v-4h-8v-4h-4v-8h4v-8h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h4v8h-4v4h-4v24h-4v4h-12v-2zm12-10v-8h-4v-4h4v-8h8v-8h-4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v4h4v4h-8v8h8v4h16v8h12v-8zm-28-8v-4h4v-4h-4v-4h4v4h16v-4h4v-4h4v-4h4v4h-4v4h-4v4h-4v4h-16v4h20v4h-24v-4zm60 18v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-6v-4h8v8h12v-16h-4v-4h4v-12h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v12h4v4h-4v16h12v-4zm-8-10v-2h24v4h-24v-2zm4-12v-2h-4v-4h4v4h16v-4h4v4h-4v4h-16v-2zm-12 6v-4h-4v8h4v-4zm44 0v-4h-4v8h4v-4zm24 22v-2h-4v-24h-4v-4h-4v-8h4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v8h4v8h-4v4h-8v4h-12v4h-4v4h-12v-2zm12-6v-4h16v-4h8v-8h-8v-4h4v-4h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h-4v8h8v8h4v4h-4v16h12v-4zm-8-10v-2h20v-4h-16v-4h-4v-4h-4v-4h-4v-4h4v4h4v4h4v4h16v-4h4v4h-4v4h4v8h-24v-2zm-196-80v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-6v-4h8v8h12v-16h8v-8h-4v-4h-4v-4h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v4h-4v4h-4v8h8v16h12v-4zm-8-10v-2h-4v-8h4v8h24v-8h4v8h-4v4h-24v-2zm4-12v-2h-4v-4h4v-8h4v8h-4v4h16v-4h-4v-8h4v8h4v4h-4v4h-16v-2zm76 28v-2h-4v-4h-16v-4h-4v-12h-4v-8h4v-8h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v16h4v8h-4v4h-4v20h-4v4h-12v-2zm12-10v-8h-8v-4h8v-8h4v4h4v-8h-8v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h4v4h-8v-4h-4v4h4v8h8v-8h16v4h-12v4h12v4h-4v12h12v-8zm-8-18v-2h-4v-8h4v8h4v-4h4v4h-4v4h-4v-2zm-16-6v-4h4v8h-4v-4zm8 22v-2h-16v4h16v-2zm48 12v-2h-4v-12h-4v-4h-4v-8h4v-4h4v-4h4v-4h-4v-4h-4v-12h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v4h-4v4h4v4h4v4h4v8h-4v4h-4v12h-4v4h-12v-4h-8v4h-12v-2zm12-6v-4h8v8h12v-16h8v-8h-4v-4h-4v-4h-4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h4v4h-4v4h-4v4h-4v8h8v16h12v-4zm-8-10v-2h-4v-8h4v8h24v-8h4v8h-4v4h-24v-2zm4-12v-2h-4v-4h4v-8h4v8h-4v4h16v-4h-4v-8h4v8h4v4h-4v4h-16v-2zm56 28v-2h-4v-20h-4v-4h-4v-8h4v-16h4v-8h4v-4h8v-4h16v4h8v4h4v8h4v12h-4v8h4v8h-4v12h-4v4h-16v4h-4v4h-12v-2zm12-8v-6h-4v-4h12v-4h-12v-4h16v8h8v-8h4v-4h-4v4h-8v-4h4v-4h4v-4h4v-12h-4v-8h-8v-4h-16v4h-8v8h-4v12h4v4h-8v8h4v-4h4v8h8v4h-8v16h12v-6zm-8-20v-2h-4v-4h4v4h4v-8h4v8h-4v4h-4v-2zm16-6v-4h4v8h-4v-4zm12 22v-2h-16v4h16v-2z"/>
+</svg>
+</script>
+<script>
+  // 원본 색상 매핑
+  const COLOR_KEYS = {
+    skin:  { original: '#fee7d5', inputId: 'colorSkin',  hexId: 'hexSkin' },
+    hair:  { original: '#762f08', inputId: 'colorHair',  hexId: 'hexHair' },
+    top:   { original: '#df2210', inputId: 'colorTop',   hexId: 'hexTop' },
+    pants: { original: '#10a4df', inputId: 'colorPants', hexId: 'hexPants' },
+    shoes: { original: '#bb7750', inputId: 'colorShoes', hexId: 'hexShoes' },
+  };
+
+  // 프리셋
+  const PRESETS = {
+    original: { skin: '#fee7d5', hair: '#762f08', top: '#df2210', pants: '#10a4df', shoes: '#bb7750' },
+    girl1:    { skin: '#fee7d5', hair: '#f5c542', top: '#ff69b4', pants: '#dda0dd', shoes: '#f0e68c' },
+    girl2:    { skin: '#ffe0bd', hair: '#8b0000', top: '#ff6347', pants: '#ffffff', shoes: '#ff1493' },
+    knight:   { skin: '#fee7d5', hair: '#333333', top: '#808080', pants: '#696969', shoes: '#2f2f2f' },
+    wizard:   { skin: '#f5deb3', hair: '#e0e0e0', top: '#4b0082', pants: '#4b0082', shoes: '#8b4513' },
+    elf:      { skin: '#d4f0c0', hair: '#c0f0c0', top: '#228b22', pants: '#006400', shoes: '#8b4513' },
+  };
+
+  let currentColors = { ...PRESETS.original };
+  const originalSVG = document.getElementById('svgData').textContent;
+
+  // 색상 적용 → SVG를 data URL로 변환 → 배경 이미지에 설정
+  function applyColors() {
+    let svg = originalSVG;
+    // 원본 색상을 현재 색상으로 교체
+    for (const key of Object.keys(COLOR_KEYS)) {
+      const orig = COLOR_KEYS[key].original;
+      const curr = currentColors[key];
+      if (orig !== curr) {
+        svg = svg.replaceAll(`fill="${orig}"`, `fill="${curr}"`);
+      }
+    }
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    document.getElementById('character').style.backgroundImage = `url('${url}')`;
+  }
+
+  // input 이벤트 연결
+  for (const [key, cfg] of Object.entries(COLOR_KEYS)) {
+    const input = document.getElementById(cfg.inputId);
+    const hex = document.getElementById(cfg.hexId);
+    input.addEventListener('input', (e) => {
+      currentColors[key] = e.target.value;
+      hex.textContent = e.target.value;
+      applyColors();
+    });
+  }
+
+  // 프리셋 적용
+  function applyPreset(name) {
+    const preset = PRESETS[name];
+    currentColors = { ...preset };
+    for (const [key, cfg] of Object.entries(COLOR_KEYS)) {
+      document.getElementById(cfg.inputId).value = preset[key];
+      document.getElementById(cfg.hexId).textContent = preset[key];
+    }
+    applyColors();
+  }
+
+  // SVG 다운로드
+  function downloadSVG() {
+    let svg = originalSVG;
+    for (const key of Object.keys(COLOR_KEYS)) {
+      const orig = COLOR_KEYS[key].original;
+      const curr = currentColors[key];
+      if (orig !== curr) {
+        svg = svg.replaceAll(`fill="${orig}"`, `fill="${curr}"`);
+      }
+    }
+    const blob = new Blob([svg], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    // 파일명에 색상 힌트
+    a.download = 'custom-character.svg';
+    a.click();
+  }
+
+  // === 걷기 애니메이션 ===
+  const character = document.getElementById('character');
+  const dirIndicator = document.getElementById('dirIndicator');
+  const FRAME_W = 64, FRAME_H = 96, COLS = 4, ANIM_SPEED = 150;
+  const ROW_MAP = { ArrowDown: 0, ArrowUp: 1, ArrowLeft: 2, ArrowRight: 3 };
+  const DIR_LABELS = ['↓ 앞 보고 걷기', '↑ 뒤 보고 걷기', '← 왼쪽 보고 걷기', '→ 오른쪽 보고 걷기'];
+
+  let currentRow = 0, currentFrame = 0, animTimer = null;
+  let keysPressed = new Set();
+  let posX = 96, posY = 50;
+  const MOVE_SPEED = 3;
+  const STAGE_W = 320, STAGE_H = 300;
+  const CHAR_W = 128, CHAR_H = 192;
+
+  function updateSprite() {
+    character.style.backgroundPosition = `${-(currentFrame * FRAME_W)}px ${-(currentRow * FRAME_H)}px`;
+  }
+
+  function startAnim(row) {
+    if (currentRow === row && animTimer) return;
+    currentRow = row;
+    currentFrame = 0;
+    dirIndicator.textContent = DIR_LABELS[row];
+    if (animTimer) clearInterval(animTimer);
+    animTimer = setInterval(() => {
+      currentFrame = (currentFrame + 1) % COLS;
+      updateSprite();
+    }, ANIM_SPEED);
+    updateSprite();
+  }
+
+  function stopAnim() {
+    if (animTimer) { clearInterval(animTimer); animTimer = null; }
+    currentFrame = 0;
+    updateSprite();
+    dirIndicator.textContent = '방향키로 이동';
+  }
+
+  setInterval(() => {
+    if (keysPressed.has('ArrowLeft'))  posX = Math.max(0, posX - MOVE_SPEED);
+    if (keysPressed.has('ArrowRight')) posX = Math.min(STAGE_W - CHAR_W, posX + MOVE_SPEED);
+    if (keysPressed.has('ArrowUp'))    posY = Math.max(0, posY - MOVE_SPEED);
+    if (keysPressed.has('ArrowDown'))  posY = Math.min(STAGE_H - CHAR_H, posY + MOVE_SPEED);
+    character.style.left = posX + 'px';
+    character.style.top = posY + 'px';
+  }, 16);
+
+  document.addEventListener('keydown', (e) => {
+    if (!ROW_MAP.hasOwnProperty(e.key)) return;
+    e.preventDefault();
+    keysPressed.add(e.key);
+    startAnim(ROW_MAP[e.key]);
+  });
+
+  document.addEventListener('keyup', (e) => {
+    keysPressed.delete(e.key);
+    if (keysPressed.size === 0) stopAnim();
+    else {
+      const remaining = [...keysPressed].pop();
+      if (ROW_MAP.hasOwnProperty(remaining)) startAnim(ROW_MAP[remaining]);
+    }
+  });
+
+  applyColors();
+  updateSprite();
+</script>
+
+</body>
+</html>

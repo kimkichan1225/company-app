@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Fit Character - 일하는 중</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100px;
+    height: 120px;
+    overflow: hidden;
+    background: transparent;
+  }
+  #container {
+    width: 100px;
+    height: 120px;
+    position: relative;
+    -webkit-app-region: no-drag;
+  }
+
+  /* 캐릭터 스프라이트 */
+  #pet {
+    width: 64px;
+    height: 96px;
+    position: absolute;
+    bottom: 0;
+    left: 18px;
+    image-rendering: pixelated;
+    cursor: grab;
+    transform-origin: center bottom;
+  }
+  #pet.dragging { cursor: grabbing; }
+  #pet.flip { transform: scaleX(-1); }
+
+  /* 말풍선 */
+  #bubble {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    color: #333;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-family: 'Segoe UI', sans-serif;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 10;
+  }
+  #bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid white;
+  }
+  #bubble.show { opacity: 1; }
+
+  /* 상태 표시 (우클릭 메뉴 대용) */
+  #status-dot {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #27ae60;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    cursor: pointer;
+    z-index: 20;
+  }
+</style>
+</head>
+<body>
+<div id="container">
+  <div id="bubble"></div>
+  <canvas id="pet" width="64" height="96"></canvas>
+  <div id="status-dot" title="더블클릭: 휴식 모드"></div>
+</div>
+
+<script>
+  const canvas = document.getElementById('pet');
+  const ctx = canvas.getContext('2d');
+  const bubble = document.getElementById('bubble');
+  const statusDot = document.getElementById('status-dot');
+
+  // 스프라이트 시트 설정
+  const FRAME_W = 64;
+  const FRAME_H = 96;
+  const COLS = 4;
+  canvas.width = FRAME_W;
+  canvas.height = FRAME_H;
+  canvas.style.width = FRAME_W + 'px';
+  canvas.style.height = FRAME_H + 'px';
+
+  // 행 매핑: 0=앞, 1=뒤, 2=왼쪽, 3=오른쪽
+  const ROW_FRONT = 0;
+  const ROW_BACK = 1;
+  const ROW_LEFT = 2;
+  const ROW_RIGHT = 3;
+
+  // 각 방향의 정지(idle) 프레임 인덱스
+  const IDLE_FRAME = {
+    [ROW_FRONT]: 0,  // 1행 1번째
+    [ROW_BACK]:  0,  // 2행 1번째
+    [ROW_LEFT]:  0,  // 3행 1번째
+    [ROW_RIGHT]: 1,  // 4행 2번째
+  };
+
+  let spriteImg = null;
+  let screenBounds = { width: 1920, height: 1080 };
+  let petX = 0, petY = 0;
+
+  // 상태 머신
+  let state = 'idle';       // idle, walk, drag
+  let facingDir = 'right';   // left, right
+  let frameIndex = 0;
+  let stateTimer = 0;
+  let stateDuration = 0;
+  const WALK_SPEED = 2;
+  const ANIM_INTERVAL = 150;
+
+  // 드래그
+  let isDragging = false;
+  let dragOffsetX = 0, dragOffsetY = 0;
+
+  // 말풍선 메시지
+  const MESSAGES = {
+    idle: ['일하는 중...', '집중!', '코딩 중~', '...', '뭐 할까?', '커피 마시고 싶다'],
+    walk: ['산책 중~', '어디 보자...', '이쪽으로!', '탐험!'],
+    drag: ['으악!', '놔줘!', '높다!', '무서워!'],
+    click: ['안녕!', '헤헤~', '뭐야?', '놀아줘!'],
+  };
+
+  // SVG 로드
+  async function loadSprite() {
+    const svgText = await window.electronAPI.readSVG();
+    const blob = new Blob([svgText], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    spriteImg = new Image();
+    spriteImg.onload = () => {
+      startAnimation();
+    };
+    spriteImg.src = url;
+  }
+
+  // 화면 정보 수신
+  window.electronAPI.onScreenBounds((bounds) => {
+    screenBounds = bounds;
+    const pos = window.electronAPI.getPosition();
+    petX = pos.x;
+    petY = pos.y;
+  });
+
+  // 마지막 걷기 방향 기억 (idle 시 같은 방향 유지)
+  let lastWalkRow = ROW_FRONT;
+
+  // 프레임 그리기
+  function drawFrame() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!spriteImg) return;
+
+    let row, col;
+
+    if (state === 'drag') {
+      row = ROW_FRONT;
+      col = IDLE_FRAME[ROW_FRONT];
+    } else if (state === 'walk') {
+      row = (facingDir === 'left') ? ROW_LEFT : ROW_RIGHT;
+      lastWalkRow = row;
+      col = frameIndex % COLS;
+    } else {
+      // idle: 마지막 방향 유지, 정지 프레임 고정
+      row = lastWalkRow;
+      col = IDLE_FRAME[row];
+    }
+
+    const sx = col * FRAME_W;
+    const sy = row * FRAME_H;
+
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(spriteImg, sx, sy, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+  }
+
+  // 상태 전환
+  function pickNewState() {
+    const rand = Math.random();
+    if (rand < 0.5) {
+      state = 'walk';
+      facingDir = Math.random() < 0.5 ? 'left' : 'right';
+      stateDuration = 100 + Math.floor(Math.random() * 200);
+    } else {
+      state = 'idle';
+      stateDuration = 80 + Math.floor(Math.random() * 160);
+    }
+    stateTimer = 0;
+    frameIndex = 0;
+  }
+
+  // 말풍선 표시
+  let bubbleTimeout = null;
+  function showBubble(category) {
+    const msgs = MESSAGES[category] || MESSAGES.idle;
+    const msg = msgs[Math.floor(Math.random() * msgs.length)];
+    bubble.textContent = msg;
+    bubble.classList.add('show');
+    if (bubbleTimeout) clearTimeout(bubbleTimeout);
+    bubbleTimeout = setTimeout(() => {
+      bubble.classList.remove('show');
+    }, 2500);
+  }
+
+  // 메인 루프
+  let lastTime = 0;
+  let animAccum = 0;
+  let msgTimer = 0;
+
+  function update(timestamp) {
+    const dt = timestamp - lastTime;
+    lastTime = timestamp;
+    animAccum += dt;
+    msgTimer += dt;
+
+    // 프레임 업데이트
+    if (animAccum >= ANIM_INTERVAL) {
+      animAccum -= ANIM_INTERVAL;
+      frameIndex++;
+      stateTimer++;
+
+      if (!isDragging) {
+        // 걷기
+        if (state === 'walk') {
+          const dir = (facingDir === 'left') ? -1 : 1;
+          petX += dir * WALK_SPEED;
+
+          // 화면 경계 체크
+          if (petX <= 0) {
+            petX = 0;
+            facingDir = 'right';
+          } else if (petX >= screenBounds.width - 100) {
+            petX = screenBounds.width - 100;
+            facingDir = 'left';
+          }
+          window.electronAPI.moveWindow(petX, petY);
+        }
+
+        // 상태 전환
+        if (stateTimer >= stateDuration) {
+          pickNewState();
+        }
+      }
+    }
+
+    // 가끔 말풍선
+    if (msgTimer >= 15000 + Math.random() * 20000) {
+      msgTimer = 0;
+      if (!isDragging) {
+        showBubble(state);
+      }
+    }
+
+    drawFrame();
+    requestAnimationFrame(update);
+  }
+
+  function startAnimation() {
+    pickNewState();
+    requestAnimationFrame(update);
+  }
+
+  // 마우스 이벤트 - 드래그
+  let clickCount = 0;
+  let clickTimer = null;
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+      isDragging = true;
+      state = 'drag';
+      frameIndex = 0;
+      canvas.classList.add('dragging');
+      const pos = window.electronAPI.getPosition();
+      dragOffsetX = e.screenX - pos.x;
+      dragOffsetY = e.screenY - pos.y;
+      showBubble('drag');
+    }
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+      petX = e.screenX - dragOffsetX;
+      petY = e.screenY - dragOffsetY;
+      window.electronAPI.moveWindow(petX, petY);
+    }
+  });
+
+  document.addEventListener('mouseup', (e) => {
+    if (isDragging) {
+      isDragging = false;
+      canvas.classList.remove('dragging');
+      // 바닥으로 떨어짐
+      petY = screenBounds.height - 120;
+      window.electronAPI.moveWindow(petX, petY);
+      pickNewState();
+    }
+  });
+
+  // 클릭 반응
+  canvas.addEventListener('click', () => {
+    clickCount++;
+    if (clickTimer) clearTimeout(clickTimer);
+    clickTimer = setTimeout(() => {
+      clickCount = 0;
+    }, 800);
+
+    if (clickCount >= 3) {
+      showBubble('drag'); // 화남 반응
+      clickCount = 0;
+    } else {
+      showBubble('click');
+    }
+  });
+
+  // 우클릭 - 휴식 모드 전환
+  canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    showBubble('idle');
+  });
+
+  // 상태 점 더블클릭 - 휴식 모드
+  statusDot.addEventListener('dblclick', () => {
+    window.electronAPI.switchToRest();
+  });
+
+  // 시작
+  loadSprite();
+</script>
+</body>
+</html>
