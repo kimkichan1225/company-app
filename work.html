@@ -360,34 +360,8 @@
     window.electronAPI.switchToRest();
   });
 
-  // 서버에 일하기 모드로 접속
-  async function connectAsWorking() {
-    const profile = await window.electronAPI.loadProfile();
-    if (!profile) return;
-    try {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.socket.io/4.7.5/socket.io.min.js';
-      script.onload = () => {
-        const socket = io('https://web-production-3efa6.up.railway.app', {
-          transports: ['websocket', 'polling']
-        });
-        socket.on('connect', () => {
-          socket.emit('join', {
-            nickname: profile.nickname,
-            colors: profile.colors,
-            mode: 'work',
-          });
-        });
-        // 휴식 모드 전환 시 모드 변경 알림
-        window._workSocket = socket;
-      };
-      document.head.appendChild(script);
-    } catch(e) {}
-  }
-
   // 시작
   loadSprite();
-  connectAsWorking();
 </script>
 </body>
 </html>

@@ -228,18 +228,12 @@ function createRestWindow() {
 function switchMode(mode) {
   if (mode === 'rest' && currentMode === 'work') {
     currentMode = 'rest';
-    if (workWin) {
-      workWin.close();
-      workWin = null;
-    }
+    if (workWin) { workWin.destroy(); workWin = null; }
     createRestWindow();
   } else if (mode === 'work' && currentMode === 'rest') {
     currentMode = 'work';
-    if (restWin) {
-      restWin.close();
-      restWin = null;
-    }
-    createWorkWindow();
+    if (restWin) { restWin.destroy(); restWin = null; }
+    setTimeout(() => createWorkWindow(), 200);
   }
 }
 
@@ -264,6 +258,10 @@ function createTray() {
       click: () => switchMode('rest'),
     },
     { type: 'separator' },
+    {
+      label: '프로필 수정',
+      click: () => openSetupForEdit(),
+    },
     {
       label: '종료',
       click: () => {
@@ -318,10 +316,24 @@ ipcMain.on('show-context-menu', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   const menu = Menu.buildFromTemplate([
     { label: '☕ 휴식 모드', click: () => switchMode('rest') },
+    { label: '✏️ 프로필 수정', click: () => openSetupForEdit() },
     { type: 'separator' },
     { label: '종료', click: () => { app.isQuitting = true; app.quit(); } },
   ]);
   menu.popup({ window: win });
+});
+
+// 프로필 수정 화면 열기
+function openSetupForEdit() {
+  if (setupWin) return;
+  if (workWin) { workWin.destroy(); workWin = null; }
+  if (restWin) { restWin.destroy(); restWin = null; }
+  // destroy 후 약간 대기해서 소켓이 끊기도록
+  setTimeout(() => createSetupWindow(), 200);
+}
+
+ipcMain.on('open-setup', () => {
+  openSetupForEdit();
 });
 
 
@@ -384,9 +396,13 @@ function createSetupWindow() {
 
   setupWin.on('closed', () => {
     setupWin = null;
-    // 셋업 안 하고 닫으면 앱 종료
     if (!hasProfile()) {
+      // 첫 셋업 안 하고 닫으면 앱 종료
       app.quit();
+    } else if (!workWin && !restWin) {
+      // 프로필 수정 후 닫으면 work 모드로 복귀
+      currentMode = 'work';
+      createWorkWindow();
     }
   });
 }

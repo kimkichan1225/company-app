@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 앱 종료
   quitApp: () => ipcRenderer.send('quit-app'),
 
+  // 프로필 수정 화면 열기
+  openSetup: () => ipcRenderer.send('open-setup'),
+
   // 우클릭 메뉴 표시
   showContextMenu: () => ipcRenderer.send('show-context-menu'),
 
