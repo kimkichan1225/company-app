@@ -215,8 +215,8 @@
         </div>
         <div class="color-row">
           <label>머리</label>
-          <input type="color" id="colorHair" value="#762f08">
-          <span class="hex" id="hexHair">#762f08</span>
+          <input type="color" id="colorHair" value="#bb7750">
+          <span class="hex" id="hexHair">#bb7750</span>
         </div>
         <div class="color-row">
           <label>상의</label>
@@ -230,15 +230,18 @@
         </div>
         <div class="color-row">
           <label>신발</label>
-          <input type="color" id="colorShoes" value="#bb7750">
-          <span class="hex" id="hexShoes">#bb7750</span>
+          <input type="color" id="colorShoes" value="#762f08">
+          <span class="hex" id="hexShoes">#762f08</span>
         </div>
       </div>
 
     </div>
   </div>
 
-  <button class="start-btn" id="startBtn" disabled>시작하기</button>
+  <div style="display:flex;gap:8px;width:100%;margin-top:auto;">
+    <button class="start-btn" id="startBtn" disabled style="flex:1;margin-top:0;">시작하기</button>
+    <button class="start-btn" id="quitBtn" style="flex:0 0 80px;margin-top:0;background:#555;font-size:13px;">종료</button>
+  </div>
 </div>
 
 <script>
@@ -250,7 +253,7 @@
   const startBtn = document.getElementById('startBtn');
 
   // 원본 색상
-  const ORIG = { skin: '#fee7d5', hair: '#762f08', top: '#df2210', pants: '#10a4df', shoes: '#bb7750' };
+  const ORIG = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
   let colors = { ...ORIG };
 
 
@@ -380,6 +383,10 @@
 
     await window.electronAPI.saveProfile(profile);
     window.electronAPI.setupDone();
+  });
+
+  document.getElementById('quitBtn').addEventListener('click', () => {
+    window.electronAPI.quitApp();
   });
 
   init();

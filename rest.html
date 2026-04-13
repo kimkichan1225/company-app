@@ -751,6 +751,62 @@ function pickAutoIdle() {
 // 초기 상태
 pickAutoTarget();
 
+// ── 퇴근 이동 (책상으로 걸어가기) ──
+let goingToDesk = false;
+let sittingAtDesk = false;
+let deskTarget = null;
+
+// 좌석 좌표 목록 (서버와 동일)
+const SEAT_POSITIONS = [
+  { x: 2*32+2,  y: 4*32-10 },
+  { x: 3*32+2,  y: 4*32-10 },
+  { x: 6*32+2,  y: 4*32-10 },
+  { x: 7*32+2,  y: 4*32-10 },
+  { x: 2*32+2,  y: 8*32-10 },
+  { x: 3*32+2,  y: 8*32-10 },
+  { x: 6*32+2,  y: 8*32-10 },
+  { x: 7*32+2,  y: 8*32-10 },
+  { x: 2*32+2,  y: 13*32-10 },
+  { x: 3*32+2,  y: 13*32-10 },
+  { x: 6*32+2,  y: 13*32-10 },
+  { x: 7*32+2,  y: 13*32-10 },
+];
+
+function findNearestSeat() {
+  // 다른 유저가 앉아있는 좌석 제외
+  const takenSeats = new Set();
+  for (const [, peer] of peers) {
+    if (peer.mode === 'work' && peer.seatIndex >= 0) {
+      takenSeats.add(peer.seatIndex);
+    }
+  }
+
+  let bestIdx = -1, bestDist = Infinity;
+  for (let i = 0; i < SEAT_POSITIONS.length; i++) {
+    if (takenSeats.has(i)) continue;
+    const s = SEAT_POSITIONS[i];
+    const d = Math.abs(s.x - myX) + Math.abs(s.y - myY);
+    if (d < bestDist) {
+      bestDist = d;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function startGoingToDesk() {
+  const idx = findNearestSeat();
+  if (idx < 0) {
+    // 빈 좌석 없으면 바로 전환
+    if (socket) socket.disconnect();
+    window.electronAPI.switchToWork();
+    return;
+  }
+  goingToDesk = true;
+  deskTarget = SEAT_POSITIONS[idx];
+  autoTarget = null; // 자동 이동 중지
+}
+
 // ── 게임 루프 ──
 let frameCounter = 0;
 let lastMoveEmit = 0;
@@ -758,12 +814,55 @@ let lastMoveEmit = 0;
 function gameLoop() {
   frameCounter++;
 
-  // 방향키 수동 조작 확인
-  manualControl = keysDown.size > 0;
+  // 앉아있으면 이동 안 함
+  if (sittingAtDesk) {
+    updateCamera();
+    drawMap();
+    for (const [id, peer] of peers) {
+      const img = peerSprites.get(id);
+      if (img) {
+        const isWorking = (peer.mode === 'work');
+        const walking = isWorking ? false : peer.isWalking;
+        if (walking && frameCounter % 8 === 0) peer._frame = ((peer._frame || 0) + 1);
+        const label = peer.nickname + (isWorking ? ' (일하는 중)' : '');
+        drawCharacter(img, peer.x, peer.y, peer.direction, walking, peer._frame || 0, label);
+      }
+    }
+    if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, false, 0, myProfile.nickname);
+    return requestAnimationFrame(gameLoop);
+  }
+
+  // 방향키 수동 조작 확인 (책상으로 이동 중이면 무시)
+  manualControl = !goingToDesk && keysDown.size > 0;
 
   let dx = 0, dy = 0;
 
-  if (manualControl) {
+  if (goingToDesk && deskTarget) {
+    // 책상으로 걸어가기
+    const distX = deskTarget.x - myX;
+    const distY = deskTarget.y - myY;
+    const dist = Math.sqrt(distX * distX + distY * distY);
+
+    if (dist < 4) {
+      // 도착 → 앉기
+      myX = deskTarget.x;
+      myY = deskTarget.y;
+      myDir = 'back';
+      myWalking = false;
+      goingToDesk = false;
+      sittingAtDesk = true;
+      deskTarget = null;
+      // 잠시 앉은 모습 보여준 후 전환
+      setTimeout(() => {
+        if (socket) socket.disconnect();
+        window.electronAPI.switchToWork();
+      }, 800);
+      return requestAnimationFrame(gameLoop);
+    } else {
+      dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
+      dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
+    }
+  } else if (manualControl) {
     // 수동 조작
     if (keysDown.has('ArrowLeft'))  dx -= SPEED;
     if (keysDown.has('ArrowRight')) dx += SPEED;
@@ -800,16 +899,19 @@ function gameLoop() {
   else if (dy < 0) myDir = 'back';
   else if (dy > 0) myDir = 'front';
 
-  if (dx !== 0 && canMove(myX + dx, myY)) {
-    myX += dx;
-  } else if (dx !== 0 && !manualControl) {
-    // 자동 이동 중 막히면 새 목표
-    pickAutoTarget();
+  if (dx !== 0) {
+    if (goingToDesk || canMove(myX + dx, myY)) {
+      myX += dx;
+    } else if (!manualControl && !goingToDesk) {
+      pickAutoTarget();
+    }
   }
-  if (dy !== 0 && canMove(myX, myY + dy)) {
-    myY += dy;
-  } else if (dy !== 0 && !manualControl) {
-    pickAutoTarget();
+  if (dy !== 0) {
+    if (goingToDesk || canMove(myX, myY + dy)) {
+      myY += dy;
+    } else if (!manualControl && !goingToDesk) {
+      pickAutoTarget();
+    }
   }
 
   // 프레임 애니메이션 (매 8프레임마다)
@@ -866,8 +968,7 @@ async function init() {
 
 // ── 버튼 ──
 document.getElementById('btnWork').addEventListener('click', () => {
-  if (socket) socket.disconnect();
-  window.electronAPI.switchToWork();
+  if (!goingToDesk) startGoingToDesk();
 });
 document.getElementById('btnClose').addEventListener('click', () => {
   if (socket) socket.disconnect();
