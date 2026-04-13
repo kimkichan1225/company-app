@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "electron": "electron .",
-    "build": "electron-builder"
+    "build": "electron-builder",
+    "release": "node release.js"
   },
   "keywords": [],
   "author": "",
