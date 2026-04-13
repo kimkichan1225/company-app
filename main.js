@@ -157,10 +157,10 @@ function createWorkWindow() {
   const { width, height } = display.workAreaSize;
 
   workWin = new BrowserWindow({
-    width: 100,
-    height: 120,
+    width: 140,
+    height: 160,
     x: Math.floor(width / 2),
-    y: height - 120,
+    y: height - 160,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -312,6 +312,18 @@ ipcMain.on('quit-app', () => {
   app.isQuitting = true;
   app.quit();
 });
+
+// 네이티브 우클릭 메뉴
+ipcMain.on('show-context-menu', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  const menu = Menu.buildFromTemplate([
+    { label: '☕ 휴식 모드', click: () => switchMode('rest') },
+    { type: 'separator' },
+    { label: '종료', click: () => { app.isQuitting = true; app.quit(); } },
+  ]);
+  menu.popup({ window: win });
+});
+
 
 // SVG 읽기 (커스텀 색상 적용)
 // 원본 SVG 반환 (색상 적용은 클라이언트에서)

@@ -26,4 +26,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 앱 종료
   quitApp: () => ipcRenderer.send('quit-app'),
 
+  // 우클릭 메뉴 표시
+  showContextMenu: () => ipcRenderer.send('show-context-menu'),
+
+  // 윈도우 크기 변경 (말풍선용)
+  expandWindow: () => ipcRenderer.send('expand-window'),
+  shrinkWindow: () => ipcRenderer.send('shrink-window'),
+
 });

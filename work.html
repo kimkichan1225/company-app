@@ -6,14 +6,14 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: 100px;
-    height: 120px;
+    width: 140px;
+    height: 160px;
     overflow: hidden;
     background: transparent;
   }
   #container {
-    width: 100px;
-    height: 120px;
+    width: 140px;
+    height: 160px;
     position: relative;
     -webkit-app-region: no-drag;
   }
@@ -24,7 +24,7 @@
     height: 96px;
     position: absolute;
     bottom: 0;
-    left: 18px;
+    left: 38px;
     image-rendering: pixelated;
     cursor: grab;
     transform-origin: center bottom;
@@ -35,7 +35,7 @@
   /* 말풍선 */
   #bubble {
     position: absolute;
-    top: -10px;
+    top: 30px;
     left: 50%;
     transform: translateX(-50%);
     background: white;
@@ -135,10 +135,17 @@
 
   // 말풍선 메시지
   const MESSAGES = {
-    idle: ['일하는 중...', '집중!', '코딩 중~', '...', '뭐 할까?', '커피 마시고 싶다'],
-    walk: ['산책 중~', '어디 보자...', '이쪽으로!', '탐험!'],
-    drag: ['으악!', '놔줘!', '높다!', '무서워!'],
-    click: ['안녕!', '헤헤~', '뭐야?', '놀아줘!'],
+    idle: [
+      '집중 중...', '열심히 하는 중~', '거의 다 됐다!', '으음...',
+      '커피 마시고 싶다☕', '오늘 할 일이 많네', '슬슬 배고프다',
+      '회의 몇 시지?', '점심 뭐 먹지', '퇴근하고 싶다...',
+      '집중집중!', '한 잔 더...', '메일 확인해야지', '아 맞다!',
+      '오늘 날씨 좋다', '주말이 빨리 왔으면', '화이팅!',
+      '졸리다...', '간식 먹고 싶다', '오늘도 수고했어',
+    ],
+    walk: ['잠깐 스트레칭~', '화장실 다녀올게', '물 좀 마시자', '기지개~'],
+    drag: ['으악!', '놔줘!', '높다!', '일하고 있었는데!'],
+    click: ['안녕!', '헤헤~', '뭐야?', '놀아줘!', '반가워!'],
   };
 
   // 원본 색상
@@ -259,8 +266,8 @@
           if (petX <= 0) {
             petX = 0;
             facingDir = 'right';
-          } else if (petX >= screenBounds.width - 100) {
-            petX = screenBounds.width - 100;
+          } else if (petX >= screenBounds.width - 140) {
+            petX = screenBounds.width - 140;
             facingDir = 'left';
           }
           window.electronAPI.moveWindow(petX, petY);
@@ -274,7 +281,7 @@
     }
 
     // 가끔 말풍선
-    if (msgTimer >= 15000 + Math.random() * 20000) {
+    if (msgTimer >= 10000 + Math.random() * 15000) {
       msgTimer = 0;
       if (!isDragging) {
         showBubble(state);
@@ -320,7 +327,7 @@
       isDragging = false;
       canvas.classList.remove('dragging');
       // 바닥으로 떨어짐
-      petY = screenBounds.height - 120;
+      petY = screenBounds.height - 160;
       window.electronAPI.moveWindow(petX, petY);
       pickNewState();
     }
@@ -342,27 +349,10 @@
     }
   });
 
-  // 우클릭 - 컨텍스트 메뉴
+  // 우클릭 - 네이티브 컨텍스트 메뉴
   canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
-    // 간단한 팝업 메뉴
-    const menu = document.createElement('div');
-    menu.style.cssText = 'position:fixed;top:' + e.clientY + 'px;left:' + e.clientX + 'px;background:#222;border:1px solid #444;border-radius:6px;padding:4px 0;z-index:100;font-family:Segoe UI,sans-serif;font-size:12px;min-width:100px;';
-    const items = [
-      { label: '휴식 모드', action: () => window.electronAPI.switchToRest() },
-      { label: '종료', action: () => window.electronAPI.quitApp() },
-    ];
-    items.forEach(item => {
-      const btn = document.createElement('div');
-      btn.textContent = item.label;
-      btn.style.cssText = 'padding:6px 14px;color:#eee;cursor:pointer;';
-      btn.onmouseenter = () => btn.style.background = '#3498db';
-      btn.onmouseleave = () => btn.style.background = 'transparent';
-      btn.onclick = () => { menu.remove(); item.action(); };
-      menu.appendChild(btn);
-    });
-    document.body.appendChild(menu);
-    setTimeout(() => document.addEventListener('click', () => menu.remove(), { once: true }), 10);
+    window.electronAPI.showContextMenu();
   });
 
   // 상태 점 더블클릭 - 휴식 모드
