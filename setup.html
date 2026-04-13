@@ -14,7 +14,6 @@
     overflow: hidden;
   }
 
-  /* 타이틀바 */
   .titlebar {
     height: 32px;
     background: #16213e;
@@ -27,158 +26,78 @@
   }
 
   .content {
-    padding: 24px 32px;
+    padding: 20px 28px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     height: calc(100% - 32px);
   }
 
-  h1 {
-    font-size: 1.3rem;
-    font-weight: 700;
-  }
-  .subtitle {
-    font-size: 0.8rem;
-    opacity: 0.5;
-    margin-top: -12px;
-  }
+  h1 { font-size: 1.3rem; font-weight: 700; }
+  .subtitle { font-size: 0.8rem; opacity: 0.5; margin-top: -8px; }
 
-  /* 미리보기 + 설정 나란히 */
   .editor {
     display: flex;
-    gap: 28px;
+    gap: 24px;
     align-items: flex-start;
     width: 100%;
   }
 
-  /* 캐릭터 미리보기 */
-  .preview {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
+  /* 미리보기 */
+  .preview { display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .preview-box {
-    width: 160px;
-    height: 200px;
-    background: #27ae60;
-    border-radius: 12px;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 12px;
-    image-rendering: pixelated;
-    position: relative;
-    overflow: hidden;
+    width: 140px; height: 180px;
+    background: #27ae60; border-radius: 12px;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 10px; image-rendering: pixelated;
+    position: relative; overflow: hidden;
   }
   .preview-ground {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 12px;
-    background: #1e8449;
+    position: absolute; bottom: 0; left: 0; right: 0; height: 10px; background: #1e8449;
   }
-  #previewCanvas {
-    image-rendering: pixelated;
-    z-index: 1;
-  }
-  .preview-name {
-    font-size: 12px;
-    background: rgba(0,0,0,0.4);
-    padding: 2px 10px;
-    border-radius: 8px;
-  }
+  #previewCanvas { image-rendering: pixelated; z-index: 1; }
+  .preview-name { font-size: 12px; background: rgba(0,0,0,0.4); padding: 2px 10px; border-radius: 8px; }
 
-  /* 설정 패널 */
-  .settings {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-  }
-
-  /* 닉네임 */
-  .field-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-  .field-group label {
-    font-size: 12px;
-    font-weight: 600;
-    opacity: 0.7;
-  }
+  /* 설정 */
+  .settings { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .field-group { display: flex; flex-direction: column; gap: 3px; }
+  .field-group label { font-size: 11px; font-weight: 600; opacity: 0.7; }
   .nickname-input {
-    background: #16213e;
-    border: 2px solid #0f3460;
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #ecf0f1;
-    font-size: 14px;
-    outline: none;
-    width: 100%;
+    background: #16213e; border: 2px solid #0f3460; border-radius: 8px;
+    padding: 7px 12px; color: #ecf0f1; font-size: 13px; outline: none; width: 100%;
   }
   .nickname-input:focus { border-color: #3498db; }
   .nickname-input::placeholder { color: #555; }
+  .error-msg { font-size: 11px; color: #e74c3c; height: 14px; }
 
-  /* 색상 행 */
-  .color-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+  /* 성별 선택 */
+  .gender-selector { display: flex; gap: 8px; }
+  .gender-btn {
+    flex: 1; padding: 8px; border: 2px solid #333; border-radius: 8px;
+    background: #16213e; color: #aaa; font-size: 12px; cursor: pointer;
+    text-align: center; transition: all 0.2s;
   }
-  .color-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .color-row label {
-    font-size: 13px;
-    width: 50px;
-  }
+  .gender-btn:hover { border-color: #3498db; color: #ecf0f1; }
+  .gender-btn.active { border-color: #3498db; background: #1a3a6e; color: white; }
+
+  /* 색상 */
+  .color-rows { display: flex; flex-direction: column; gap: 6px; }
+  .color-row { display: flex; align-items: center; gap: 10px; }
+  .color-row label { font-size: 12px; width: 40px; }
   .color-row input[type="color"] {
-    width: 36px;
-    height: 28px;
-    border: 2px solid #444;
-    border-radius: 6px;
-    cursor: pointer;
-    background: none;
-    padding: 1px;
+    width: 32px; height: 24px; border: 2px solid #444; border-radius: 5px;
+    cursor: pointer; background: none; padding: 1px;
   }
-  .color-row .hex {
-    font-size: 11px;
-    opacity: 0.4;
-    font-family: monospace;
-  }
+  .color-row .hex { font-size: 10px; opacity: 0.4; font-family: monospace; }
 
-  /* 시작 버튼 */
+  /* 버튼 */
   .start-btn {
-    width: 100%;
-    padding: 12px;
-    background: #27ae60;
-    border: none;
-    border-radius: 10px;
-    color: white;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-top: auto;
-    transition: background 0.2s;
+    width: 100%; padding: 11px; background: #27ae60; border: none; border-radius: 10px;
+    color: white; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.2s;
   }
   .start-btn:hover { background: #2ecc71; }
-  .start-btn:disabled {
-    background: #555;
-    cursor: not-allowed;
-  }
-
-  .error-msg {
-    font-size: 11px;
-    color: #e74c3c;
-    height: 14px;
-  }
+  .start-btn:disabled { background: #555; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -187,10 +106,9 @@
 
 <div class="content">
   <h1>내 캐릭터 만들기</h1>
-  <p class="subtitle">색상을 선택하고 닉네임을 정해주세요</p>
+  <p class="subtitle">캐릭터를 선택하고 꾸며주세요</p>
 
   <div class="editor">
-    <!-- 미리보기 -->
     <div class="preview">
       <div class="preview-box">
         <div class="preview-ground"></div>
@@ -199,8 +117,15 @@
       <div class="preview-name" id="previewName">닉네임</div>
     </div>
 
-    <!-- 설정 -->
     <div class="settings">
+      <div class="field-group">
+        <label>캐릭터</label>
+        <div class="gender-selector">
+          <button class="gender-btn active" id="btnBoy" data-gender="boy">👦 남자</button>
+          <button class="gender-btn" id="btnGirl" data-gender="girl">👧 여자</button>
+        </div>
+      </div>
+
       <div class="field-group">
         <label>닉네임</label>
         <input type="text" class="nickname-input" id="nickname" placeholder="닉네임을 입력하세요" maxlength="12" />
@@ -234,7 +159,6 @@
           <span class="hex" id="hexShoes">#762f08</span>
         </div>
       </div>
-
     </div>
   </div>
 
@@ -252,12 +176,10 @@
   const errorMsg = document.getElementById('errorMsg');
   const startBtn = document.getElementById('startBtn');
 
-  // 원본 색상
   const ORIG = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
   let colors = { ...ORIG };
+  let gender = 'boy';
 
-
-  // 색상 입력 요소
   const COLOR_INPUTS = {
     skin:  { input: document.getElementById('colorSkin'),  hex: document.getElementById('hexSkin') },
     hair:  { input: document.getElementById('colorHair'),  hex: document.getElementById('hexHair') },
@@ -266,27 +188,31 @@
     shoes: { input: document.getElementById('colorShoes'), hex: document.getElementById('hexShoes') },
   };
 
-  // SVG 원본
   let originalSVG = '';
   let spriteImg = null;
-
-  // 스프라이트 애니메이션
   const FRAME_W = 64, FRAME_H = 96;
   let frameIndex = 0;
   const IDLE_FRAME = { 0: 0, 1: 0, 2: 0, 3: 1 };
 
-  // SVG 로드
-  async function init() {
-    originalSVG = await window.electronAPI.readSVG();
+  // SVG 로드 (성별에 따라)
+  async function loadSVG() {
+    originalSVG = await window.electronAPI.readSVG(gender);
     updateSprite();
+  }
 
-    // 기존 프로필이 있으면 로드
+  async function init() {
+    // 기존 프로필 로드
     const profile = await window.electronAPI.loadProfile();
     if (profile) {
       if (profile.nickname) {
         nicknameInput.value = profile.nickname;
         previewName.textContent = profile.nickname;
         startBtn.disabled = false;
+      }
+      if (profile.gender) {
+        gender = profile.gender;
+        document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`[data-gender="${gender}"]`).classList.add('active');
       }
       if (profile.colors) {
         colors = { ...profile.colors };
@@ -296,56 +222,46 @@
         }
       }
     }
+    await loadSVG();
   }
 
   function updateSprite() {
-    // 원본 SVG에 색상 적용
     let svg = originalSVG;
     for (const key of Object.keys(ORIG)) {
-      if (colors[key] !== ORIG[key]) {
+      if (colors[key] !== ORIG[key])
         svg = svg.replaceAll('fill="' + ORIG[key] + '"', 'fill="' + colors[key] + '"');
-      }
     }
-
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const img = new Image();
-    img.onload = () => {
-      spriteImg = img;
-      drawPreview();
-    };
+    img.onload = () => { spriteImg = img; };
     img.src = url;
   }
 
-  function drawPreview() {
-    ctx.clearRect(0, 0, 128, 192);
-    if (!spriteImg) return;
-    // 앞보기 정지 프레임
-    const sx = IDLE_FRAME[0] * FRAME_W;
-    const sy = 0;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(spriteImg, sx, sy, FRAME_W, FRAME_H, 0, 0, 128, 192);
-  }
-
-  // 애니메이션 (걷기 프리뷰)
-  let animRow = 0;
-  let animTimer = setInterval(() => {
+  // 애니메이션
+  setInterval(() => {
     if (!spriteImg) return;
     frameIndex = (frameIndex + 1) % 4;
     ctx.clearRect(0, 0, 128, 192);
     ctx.imageSmoothingEnabled = false;
-
-    // 방향 순환: 앞 → 왼쪽 → 뒤 → 오른쪽
     const rows = [0, 2, 1, 3];
-    const cycleFrame = Math.floor(Date.now() / 2000) % 4;
-    animRow = rows[cycleFrame];
-
+    const animRow = rows[Math.floor(Date.now() / 2000) % 4];
     const sx = (frameIndex % 4) * FRAME_W;
     const sy = animRow * FRAME_H;
     ctx.drawImage(spriteImg, sx, sy, FRAME_W, FRAME_H, 0, 0, 128, 192);
   }, 200);
 
-  // 색상 변경 이벤트
+  // 성별 선택
+  document.querySelectorAll('.gender-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      gender = btn.dataset.gender;
+      loadSVG();
+    });
+  });
+
+  // 색상 변경
   for (const [key, cfg] of Object.entries(COLOR_INPUTS)) {
     cfg.input.addEventListener('input', (e) => {
       colors[key] = e.target.value;
@@ -354,40 +270,25 @@
     });
   }
 
-  // 닉네임 입력
+  // 닉네임
   nicknameInput.addEventListener('input', () => {
     const val = nicknameInput.value.trim();
     previewName.textContent = val || '닉네임';
-    if (val.length === 0) {
-      startBtn.disabled = true;
-      errorMsg.textContent = '';
-    } else if (val.length < 2) {
-      startBtn.disabled = true;
-      errorMsg.textContent = '2글자 이상 입력해주세요';
-    } else {
-      startBtn.disabled = false;
-      errorMsg.textContent = '';
-    }
+    if (val.length === 0) { startBtn.disabled = true; errorMsg.textContent = ''; }
+    else if (val.length < 2) { startBtn.disabled = true; errorMsg.textContent = '2글자 이상 입력해주세요'; }
+    else { startBtn.disabled = false; errorMsg.textContent = ''; }
   });
 
-  // 시작 버튼
+  // 시작
   startBtn.addEventListener('click', async () => {
     const nickname = nicknameInput.value.trim();
     if (nickname.length < 2) return;
-
-    const profile = {
-      nickname,
-      colors: { ...colors },
-      createdAt: new Date().toISOString(),
-    };
-
+    const profile = { nickname, gender, colors: { ...colors }, createdAt: new Date().toISOString() };
     await window.electronAPI.saveProfile(profile);
     window.electronAPI.setupDone();
   });
 
-  document.getElementById('quitBtn').addEventListener('click', () => {
-    window.electronAPI.quitApp();
-  });
+  document.getElementById('quitBtn').addEventListener('click', () => window.electronAPI.quitApp());
 
   init();
 </script>

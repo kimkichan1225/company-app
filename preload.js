@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   switchToWork: () => ipcRenderer.send('switch-mode', 'work'),
 
   // SVG 파일 읽기 (커스텀 색상 적용된 버전)
-  readSVG: () => ipcRenderer.invoke('read-svg'),
+  readSVG: (gender) => ipcRenderer.invoke('read-svg', gender),
 
   // 프로필 저장/로드
   saveProfile: (profile) => ipcRenderer.invoke('save-profile', profile),

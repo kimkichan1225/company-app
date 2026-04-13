@@ -372,6 +372,7 @@ const IDLE_FRAME = { 0: 0, 1: 0, 2: 0, 3: 1 };
 const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
 
 let mySpriteImg = null, myProfile = null, originalSVG = '';
+let svgByGender = {}; // { boy: svgText, girl: svgText }
 let myX = 450, myY = 320, myDir = 'front', myWalking = false, myFrameIndex = 0;
 let myStatus = '휴식 중';
 const SPEED = 1;
@@ -650,6 +651,7 @@ async function connectServer() {
       document.getElementById('onlineCount').textContent = '서버 연결됨';
       socket.emit('join', {
         nickname: myProfile.nickname, colors: myProfile.colors,
+        gender: myProfile.gender || 'boy',
         x: myX, y: myY, mode: 'rest', status: myStatus,
       });
     });
@@ -658,14 +660,18 @@ async function connectServer() {
       for (const u of users) {
         if (u.id === socket.id) continue;
         peers.set(u.id, u);
-        if (!peerSprites.has(u.id)) peerSprites.set(u.id, await createSpriteImage(originalSVG, u.colors));
+        if (!peerSprites.has(u.id)) {
+          const svg = svgByGender[u.gender || 'boy'] || originalSVG;
+          peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
+        }
       }
       updateOnlineCount();
     });
 
     socket.on('user-joined', async (u) => {
       peers.set(u.id, u);
-      peerSprites.set(u.id, await createSpriteImage(originalSVG, u.colors));
+      const svg = svgByGender[u.gender || 'boy'] || originalSVG;
+      peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
       addSystemMsg(`${u.nickname} 님이 입장했습니다`);
       updateOnlineCount();
     });
@@ -783,7 +789,9 @@ document.getElementById('btnQuit').addEventListener('click', () => { if (socket)
 // ══════════════════════════════════════
 async function init() {
   myProfile = await window.electronAPI.loadProfile();
-  originalSVG = await window.electronAPI.readSVG();
+  svgByGender.boy = await window.electronAPI.readSVG('boy');
+  svgByGender.girl = await window.electronAPI.readSVG('girl');
+  originalSVG = svgByGender[myProfile.gender || 'boy'];
   mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors);
   drawMap(); updateCamera(); gameLoop(); connectServer();
 }

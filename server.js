@@ -137,6 +137,7 @@ io.on('connection', (socket) => {
       id: socket.id,
       nickname: data.nickname,
       colors: data.colors,
+      gender: data.gender || 'boy',
       x: data.x || 400,
       y: data.y || 300,
       direction: 'front',

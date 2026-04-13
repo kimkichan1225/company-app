@@ -325,10 +325,16 @@ ipcMain.on('show-context-menu', (event) => {
 });
 
 
-// SVG 읽기 (커스텀 색상 적용)
-// 원본 SVG 반환 (색상 적용은 클라이언트에서)
-ipcMain.handle('read-svg', async () => {
-  return fs.readFileSync(svgPath, 'utf-8');
+// 원본 SVG 반환 (성별에 따라 다른 파일)
+ipcMain.handle('read-svg', async (event, gender) => {
+  // gender가 지정되면 해당 파일, 아니면 프로필에서 확인
+  let g = gender;
+  if (!g) {
+    const profile = loadProfile();
+    g = (profile && profile.gender) || 'boy';
+  }
+  const fileName = g === 'girl' ? 'pixelated-cartoon-girl.svg' : 'pixelated-cartoon-boy.svg';
+  return fs.readFileSync(path.join(__dirname, fileName), 'utf-8');
 });
 
 // 프로필 IPC
