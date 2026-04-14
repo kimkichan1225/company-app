@@ -176,6 +176,7 @@
             <div style="display:flex;gap:6px;">
               <button class="modal-gender active" data-g="boy" style="flex:1;padding:6px;border:2px solid #3498db;border-radius:6px;background:#1a3a6e;color:white;font-size:11px;cursor:pointer;">👦 남자</button>
               <button class="modal-gender" data-g="girl" style="flex:1;padding:6px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;">👧 여자</button>
+              <button class="modal-gender" data-g="pikachu" style="flex:1;padding:6px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;">⚡ 피카츄</button>
             </div>
           </div>
           <div>
@@ -682,10 +683,12 @@ const peers = new Map(), peerSprites = new Map();
 // 말풍선 데이터: id → { text, timer }
 const bubbles = new Map();
 
-function createSpriteImage(svgText, colors) {
+function createSpriteImage(svgText, colors, options = {}) {
+  const { isPikachu = false } = options;
   return new Promise((resolve) => {
     let svg = svgText;
-    if (colors) {
+    // 피카츄는 색상 커스터마이징 안 함 (고정 팔레트)
+    if (colors && !isPikachu) {
       for (const key of Object.keys(ORIG_COLORS)) {
         if (colors[key] && colors[key] !== ORIG_COLORS[key])
           svg = svg.replaceAll('fill="' + ORIG_COLORS[key] + '"', 'fill="' + colors[key] + '"');
@@ -694,7 +697,33 @@ function createSpriteImage(svgText, colors) {
     const blob = new Blob([svg], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
     const img = new Image();
-    img.onload = () => resolve(img);
+    img.onload = () => {
+      if (!isPikachu) { resolve(img); return; }
+      // 피카츄 스프라이트 프레임 스왑:
+      // row 2 (left) col 1,2,3 ↔ row 3 (right) col 0,1,2 가 SVG에서 어긋남 → 교정
+      const w = img.width, h = img.height;
+      const fw = w / 4, fh = h / 4;
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, 0, 0);
+      // row 2 col 1,2,3 (3 프레임) 임시 저장
+      const tmp = document.createElement('canvas');
+      tmp.width = fw * 3; tmp.height = fh;
+      const tctx = tmp.getContext('2d');
+      tctx.imageSmoothingEnabled = false;
+      tctx.drawImage(canvas, 1*fw, 2*fh, 3*fw, fh, 0, 0, 3*fw, fh);
+      // row 3 col 0,1,2 → row 2 col 1,2,3 로 복사
+      ctx.clearRect(1*fw, 2*fh, 3*fw, fh);
+      ctx.drawImage(canvas, 0, 3*fh, 3*fw, fh, 1*fw, 2*fh, 3*fw, fh);
+      // 임시 저장한 것 → row 3 col 0,1,2 에 붙여넣기
+      ctx.clearRect(0, 3*fh, 3*fw, fh);
+      ctx.drawImage(tmp, 0, 0, 3*fw, fh, 0, 3*fh, 3*fw, fh);
+      const fixed = new Image();
+      fixed.onload = () => resolve(fixed);
+      fixed.src = canvas.toDataURL();
+    };
     img.src = url;
   });
 }
@@ -977,7 +1006,7 @@ async function connectServer() {
       peers.set(u.id, u);
       if (!peerSprites.has(u.id)) {
         const svg = svgByGender[u.gender || 'boy'] || originalSVG;
-        peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
+        peerSprites.set(u.id, await createSpriteImage(svg, u.colors, { isPikachu: u.gender === 'pikachu' }));
       }
     }
     updateOnlineCount();
@@ -986,7 +1015,7 @@ async function connectServer() {
   window.electronAPI.onSocketEvent('user-joined', async (u) => {
     peers.set(u.id, u);
     const svg = svgByGender[u.gender || 'boy'] || originalSVG;
-    peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
+    peerSprites.set(u.id, await createSpriteImage(svg, u.colors, { isPikachu: u.gender === 'pikachu' }));
     addSystemMsg(`${u.nickname} 님이 입장했습니다`);
     updateOnlineCount();
   });
@@ -1135,8 +1164,9 @@ async function init() {
   myProfile = await window.electronAPI.loadProfile();
   svgByGender.boy = await window.electronAPI.readSVG('boy');
   svgByGender.girl = await window.electronAPI.readSVG('girl');
+  svgByGender.pikachu = await window.electronAPI.readSVG('pikachu');
   originalSVG = svgByGender[myProfile.gender || 'boy'];
-  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors);
+  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors, { isPikachu: myProfile.gender === 'pikachu' });
 
   // work 모드에서 복귀한 경우 좌석에서 일어나는 애니메이션
   const seat = await window.electronAPI.getSavedSeat();
@@ -1214,7 +1244,11 @@ function openProfileModal() {
 
 async function updateModalSprite() {
   const svg = svgByGender[modalGender] || originalSVG;
-  modalSpriteImg = await createSpriteImage(svg, modalColors);
+  modalSpriteImg = await createSpriteImage(svg, modalColors, { isPikachu: modalGender === 'pikachu' });
+  // 피카츄일 때 색상 섹션 비활성화
+  const colorSection = document.querySelectorAll('.modal-color');
+  colorSection.forEach(el => { el.style.opacity = (modalGender === 'pikachu') ? '0.3' : '1'; });
+  document.querySelectorAll('.modal-color input').forEach(inp => { inp.disabled = (modalGender === 'pikachu'); });
 }
 
 // 모달 애니메이션
@@ -1260,7 +1294,7 @@ document.getElementById('modalSave').addEventListener('click', async () => {
 
   // 내 스프라이트 갱신
   originalSVG = svgByGender[modalGender];
-  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors);
+  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors, { isPikachu: modalGender === 'pikachu' });
 
   // 서버에 다시 알림
   if (socketConnected) {

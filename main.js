@@ -704,7 +704,10 @@ ipcMain.handle('read-svg', async (event, gender) => {
     const profile = loadProfile();
     g = (profile && profile.gender) || 'boy';
   }
-  const fileName = g === 'girl' ? 'pixelated-cartoon-girl.svg' : 'pixelated-cartoon-boy.svg';
+  let fileName;
+  if (g === 'girl') fileName = 'pixelated-cartoon-girl.svg';
+  else if (g === 'pikachu') fileName = 'pixelated-cartoon-pikachu.svg';
+  else fileName = 'pixelated-cartoon-boy.svg';
   return fs.readFileSync(path.join(__dirname, fileName), 'utf-8');
 });
 
