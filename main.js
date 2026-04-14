@@ -264,8 +264,8 @@ try {
     try {
       $fs = [System.IO.File]::Open($exePath, 'Open', 'ReadWrite', 'None')
       $fs.Close()
-      Write-Host "       → 해제 완료 (${unlockWait}x500ms)"
-      Write-Log "Exe unlocked after ${unlockWait}x500ms"
+      Write-Host "       → 해제 완료 (\${unlockWait}x500ms)"
+      Write-Log "Exe unlocked after \${unlockWait}x500ms"
       break
     } catch {
       Start-Sleep -Milliseconds 500
