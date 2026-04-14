@@ -218,9 +218,7 @@
   </div>
 </div>
 
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
-const SERVER_URL = 'https://web-production-3efa6.up.railway.app';
 
 // ══════════════════════════════════════
 // 타일맵 (32x22 = 1024x704)
@@ -759,7 +757,7 @@ function drawCharacter(img, x, y, dir, walking, frameIdx, nickname, status, id) 
 // 자동 이동
 // ══════════════════════════════════════
 let autoTarget = null, autoIdle = 0, autoIdleDuration = 0;
-let goingToDesk = false, sittingAtDesk = false, deskTarget = null;
+let goingToDesk = false, sittingAtDesk = false, deskTarget = null, deskTargetIndex = -1;
 let goingToZone = false, zoneTarget = null;
 let manualControl = false;
 
@@ -810,8 +808,16 @@ function findNearestSeat() {
 
 function startGoingToDesk() {
   const idx = findNearestSeat();
-  if (idx < 0) { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); return; }
-  goingToDesk = true; deskTarget = SEAT_POSITIONS[idx]; autoTarget = null;
+  if (idx < 0) {
+    // 좌석이 없으면 현재 위치에서 바로 work 모드로
+    if (socketConnected) window.electronAPI.socketEmit('mode-change', { mode: 'work' });
+    window.electronAPI.switchToWork();
+    return;
+  }
+  goingToDesk = true;
+  deskTarget = SEAT_POSITIONS[idx];
+  deskTargetIndex = idx;
+  autoTarget = null;
 }
 
 function startGoingToZone(status) {
@@ -853,8 +859,15 @@ function gameLoop() {
     const distX = deskTarget.x - myX, distY = deskTarget.y - myY;
     if (Math.sqrt(distX*distX + distY*distY) < 4) {
       myX = deskTarget.x; myY = deskTarget.y; myDir = 'back'; myWalking = false;
-      goingToDesk = false; sittingAtDesk = true; deskTarget = null;
-      setTimeout(() => { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); }, 800);
+      goingToDesk = false; sittingAtDesk = true;
+      const targetIdx = deskTargetIndex;
+      deskTarget = null; deskTargetIndex = -1;
+      // 서버에 앉음 알림 (선택한 좌석 힌트 포함)
+      if (socketConnected) {
+        window.electronAPI.socketEmit('mode-change', { mode: 'work', seatIndex: targetIdx });
+      }
+      // 연결 유지한 채로 work 창으로 전환
+      setTimeout(() => { window.electronAPI.switchToWork(); }, 800);
       return requestAnimationFrame(gameLoop);
     }
     dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
@@ -899,9 +912,9 @@ function gameLoop() {
 
   if (frameCounter % 8 === 0 && myWalking) myFrameIndex++;
 
-  if (socket && socket.connected && frameCounter - lastMoveEmit >= 3) {
+  if (socketConnected && frameCounter - lastMoveEmit >= 3) {
     lastMoveEmit = frameCounter;
-    socket.emit('move', { x: myX, y: myY, direction: myDir, isWalking: myWalking });
+    window.electronAPI.socketEmit('move', { x: myX, y: myY, direction: myDir, isWalking: myWalking });
   }
 
   updateCamera(); drawMap(); drawPeers();
@@ -934,83 +947,105 @@ function updateCamera() {
 }
 
 // ══════════════════════════════════════
-// Socket.io
+// Socket.io (main process에서 유지, IPC 브리지로 통신)
 // ══════════════════════════════════════
-let socket = null;
+let mySocketId = null;
+let socketConnected = false;
 
 async function connectServer() {
-  try {
-    socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
+  // 이벤트 핸들러 등록
+  window.electronAPI.onSocketEvent('connect', () => {
+    socketConnected = true;
+    document.getElementById('onlineCount').textContent = '서버 연결됨';
+  });
 
-    socket.on('connect', () => {
-      document.getElementById('onlineCount').textContent = '서버 연결됨';
-      socket.emit('join', {
-        nickname: myProfile.nickname, colors: myProfile.colors,
-        gender: myProfile.gender || 'boy',
-        x: myX, y: myY, mode: 'rest', status: myStatus,
-      });
-    });
+  window.electronAPI.onSocketEvent('disconnect', () => {
+    socketConnected = false;
+    document.getElementById('onlineCount').textContent = '연결 끊김';
+  });
 
-    socket.on('users-list', async (users) => {
-      for (const u of users) {
-        if (u.id === socket.id) continue;
-        peers.set(u.id, u);
-        if (!peerSprites.has(u.id)) {
-          const svg = svgByGender[u.gender || 'boy'] || originalSVG;
-          peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
-        }
-      }
-      updateOnlineCount();
-    });
-
-    socket.on('user-joined', async (u) => {
+  window.electronAPI.onSocketEvent('users-list', async (users) => {
+    for (const u of users) {
+      if (u.id === mySocketId) continue;
       peers.set(u.id, u);
-      const svg = svgByGender[u.gender || 'boy'] || originalSVG;
-      peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
-      addSystemMsg(`${u.nickname} 님이 입장했습니다`);
-      updateOnlineCount();
-    });
-
-    socket.on('user-moved', (data) => {
-      const p = peers.get(data.id);
-      if (p) { p.x = data.x; p.y = data.y; p.direction = data.direction; p.isWalking = data.isWalking; }
-    });
-
-    socket.on('user-mode-changed', (data) => {
-      const p = peers.get(data.id);
-      if (p) {
-        p.mode = data.mode; p.seatIndex = data.seatIndex;
-        p.x = data.x; p.y = data.y; p.direction = data.direction; p.isWalking = false;
+      if (!peerSprites.has(u.id)) {
+        const svg = svgByGender[u.gender || 'boy'] || originalSVG;
+        peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
       }
-    });
+    }
+    updateOnlineCount();
+  });
 
-    socket.on('user-status-changed', (data) => {
-      const p = peers.get(data.id);
-      if (p) { p.status = data.status; }
-      addSystemMsg(`${data.nickname}: ${data.status}`);
-    });
+  window.electronAPI.onSocketEvent('user-joined', async (u) => {
+    peers.set(u.id, u);
+    const svg = svgByGender[u.gender || 'boy'] || originalSVG;
+    peerSprites.set(u.id, await createSpriteImage(svg, u.colors));
+    addSystemMsg(`${u.nickname} 님이 입장했습니다`);
+    updateOnlineCount();
+  });
 
-    socket.on('user-left', (id) => {
-      const p = peers.get(id);
-      if (p) addSystemMsg(`${p.nickname} 님이 퇴장했습니다`);
-      peers.delete(id); peerSprites.delete(id); bubbles.delete(id);
-      updateOnlineCount();
-    });
+  window.electronAPI.onSocketEvent('user-moved', (data) => {
+    const p = peers.get(data.id);
+    if (p) { p.x = data.x; p.y = data.y; p.direction = data.direction; p.isWalking = data.isWalking; }
+  });
 
-    socket.on('chat-history', (history) => {
-      for (const msg of history) addChatMsg(msg.nickname, msg.message);
-    });
+  window.electronAPI.onSocketEvent('user-mode-changed', (data) => {
+    const p = peers.get(data.id);
+    if (p) {
+      p.mode = data.mode; p.seatIndex = data.seatIndex;
+      p.x = data.x; p.y = data.y; p.direction = data.direction; p.isWalking = false;
+    }
+  });
 
-    socket.on('chat-message', (data) => {
-      addChatMsg(data.nickname, data.message);
-      // 말풍선 표시
-      const id = data.id === socket.id ? '__me' : data.id;
-      bubbles.set(id, { text: data.message.slice(0, 20), timer: 180 }); // ~3초
-    });
+  window.electronAPI.onSocketEvent('user-status-changed', (data) => {
+    const p = peers.get(data.id);
+    if (p) { p.status = data.status; }
+    addSystemMsg(`${data.nickname}: ${data.status}`);
+  });
 
-    socket.on('disconnect', () => {
-      document.getElementById('onlineCount').textContent = '연결 끊김';
+  window.electronAPI.onSocketEvent('user-left', (id) => {
+    const p = peers.get(id);
+    if (p) addSystemMsg(`${p.nickname} 님이 퇴장했습니다`);
+    peers.delete(id); peerSprites.delete(id); bubbles.delete(id);
+    updateOnlineCount();
+  });
+
+  window.electronAPI.onSocketEvent('chat-history', (history) => {
+    for (const msg of history) addChatMsg(msg.nickname, msg.message);
+  });
+
+  window.electronAPI.onSocketEvent('chat-message', (data) => {
+    addChatMsg(data.nickname, data.message);
+    // 말풍선 표시
+    const id = data.id === mySocketId ? '__me' : data.id;
+    bubbles.set(id, { text: data.message.slice(0, 20), timer: 180 }); // ~3초
+  });
+
+  // 이미 연결되어 있으면 mode-change만 보냄 (work → rest 복귀)
+  const alreadyConnected = await window.electronAPI.isSocketConnected();
+  if (alreadyConnected) {
+    mySocketId = await window.electronAPI.getSocketId();
+    socketConnected = true;
+    document.getElementById('onlineCount').textContent = '서버 연결됨';
+    window.electronAPI.socketEmit('mode-change', 'rest');
+    window.electronAPI.socketEmit('request-users');
+    return;
+  }
+
+  // 새 연결
+  try {
+    const result = await window.electronAPI.socketConnect({
+      nickname: myProfile.nickname, colors: myProfile.colors,
+      gender: myProfile.gender || 'boy',
+      x: myX, y: myY, mode: 'rest', status: myStatus,
     });
+    mySocketId = result && result.id;
+    socketConnected = !!(result && result.connected);
+    if (socketConnected) {
+      document.getElementById('onlineCount').textContent = '서버 연결됨';
+    } else {
+      document.getElementById('onlineCount').textContent = '서버 미연결';
+    }
   } catch (e) {
     document.getElementById('onlineCount').textContent = '서버 미연결';
   }
@@ -1039,7 +1074,7 @@ document.getElementById('chatInput').addEventListener('keydown', (e) => { if (e.
 function sendChat() {
   const input = document.getElementById('chatInput');
   const text = input.value.trim(); if (!text) return;
-  if (socket && socket.connected) socket.emit('chat', text);
+  if (socketConnected) window.electronAPI.socketEmit('chat', text);
   else { addChatMsg(myProfile.nickname, text); bubbles.set('__me', { text: text.slice(0,20), timer: 180 }); }
   input.value = '';
 }
@@ -1052,7 +1087,7 @@ document.querySelectorAll('.status-btn').forEach(btn => {
     document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     myStatus = btn.dataset.status;
-    if (socket && socket.connected) socket.emit('status-change', myStatus);
+    if (socketConnected) window.electronAPI.socketEmit('status-change', myStatus);
     // 상태에 맞는 구역으로 이동
     if (myStatus !== '자리비움') startGoingToZone(myStatus);
   });
@@ -1075,10 +1110,16 @@ document.addEventListener('keyup', (e) => keysDown.delete(e.key));
 // 버튼
 // ══════════════════════════════════════
 document.getElementById('btnWork').addEventListener('click', () => { if (!goingToDesk) startGoingToDesk(); });
-document.getElementById('btnClose').addEventListener('click', () => { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); });
-document.getElementById('btnMinimize').addEventListener('click', () => { if (socket) socket.disconnect(); window.electronAPI.switchToWork(); });
+// Close/Minimize: work 모드로 전환 (연결 유지, 현재 위치에서)
+function closeToWork() {
+  if (socketConnected) window.electronAPI.socketEmit('mode-change', { mode: 'work' });
+  window.electronAPI.switchToWork();
+}
+document.getElementById('btnClose').addEventListener('click', closeToWork);
+document.getElementById('btnMinimize').addEventListener('click', closeToWork);
 document.getElementById('btnProfile').addEventListener('click', () => openProfileModal());
-document.getElementById('btnQuit').addEventListener('click', () => { if (socket) socket.disconnect(); window.electronAPI.quitApp(); });
+// Quit: 앱 종료 (소켓 해제)
+document.getElementById('btnQuit').addEventListener('click', () => { window.electronAPI.socketDisconnect(); window.electronAPI.quitApp(); });
 
 // ══════════════════════════════════════
 // 초기화
@@ -1089,6 +1130,43 @@ async function init() {
   svgByGender.girl = await window.electronAPI.readSVG('girl');
   originalSVG = svgByGender[myProfile.gender || 'boy'];
   mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors);
+
+  // work 모드에서 복귀한 경우 좌석에서 일어나는 애니메이션
+  const seat = await window.electronAPI.getSavedSeat();
+  if (seat) {
+    myX = seat.x;
+    myY = seat.y;
+    myDir = seat.direction || 'back';
+    myWalking = false;
+    sittingAtDesk = true;
+
+    // 1단계: 잠시 앉아있다가 몸 돌리기 (뒤 → 옆)
+    setTimeout(() => {
+      myDir = 'right';
+      if (socketConnected) {
+        window.electronAPI.socketEmit('move', { x: myX, y: myY, direction: myDir, isWalking: false });
+      }
+    }, 350);
+
+    // 2단계: 앞으로 방향 전환 (일어서는 타이밍)
+    setTimeout(() => {
+      myDir = 'front';
+      if (socketConnected) {
+        window.electronAPI.socketEmit('move', { x: myX, y: myY, direction: myDir, isWalking: false });
+      }
+    }, 650);
+
+    // 3단계: 의자 밖으로 한 칸 걸어나가기
+    setTimeout(() => {
+      sittingAtDesk = false;
+      window.electronAPI.clearSavedSeat();
+      // 좌석 아래 칸을 목표로 자동 이동 시작
+      const below = { x: myX, y: myY + TILE };
+      autoTarget = canMove(below.x, below.y) ? below : null;
+      if (!autoTarget) pickAutoTarget();
+    }, 1000);
+  }
+
   drawMap(); updateCamera(); gameLoop(); connectServer();
 }
 init();
@@ -1178,8 +1256,8 @@ document.getElementById('modalSave').addEventListener('click', async () => {
   mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors);
 
   // 서버에 다시 알림
-  if (socket && socket.connected) {
-    socket.emit('join', {
+  if (socketConnected) {
+    window.electronAPI.socketEmit('join', {
       nickname: myProfile.nickname, colors: myProfile.colors,
       gender: myProfile.gender, x: myX, y: myY, mode: 'rest', status: myStatus,
     });

@@ -3,14 +3,55 @@ const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const { execFile } = require('child_process');
+const { io: ioClient } = require('socket.io-client');
 
 const CURRENT_VERSION = '1.0.0';
 const VERSION_URL = 'https://raw.githubusercontent.com/kimkichan1225/company-app/main/version.json';
+const SERVER_URL = 'https://web-production-3efa6.up.railway.app';
 
 let workWin = null;   // 일하는 중 (데스크탑 펫)
 let restWin = null;   // 휴식 중 (소통 창)
 let tray = null;
 let currentMode = 'work';
+
+// ── socket.io 클라이언트 (main process에서 유지) ──
+let clientSocket = null;
+let savedSeat = null; // work 모드로 전환할 때 앉은 좌석 정보 (rest 복귀 시 사용)
+
+function forwardSocketEvent(event, data) {
+  for (const win of BrowserWindow.getAllWindows()) {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('socket:event', { event, data });
+    }
+  }
+}
+
+function getClientSocket() {
+  if (clientSocket) return clientSocket;
+  clientSocket = ioClient(SERVER_URL, {
+    transports: ['websocket', 'polling'],
+    autoConnect: false,
+    reconnection: true,
+  });
+  clientSocket.on('connect', () => forwardSocketEvent('connect', null));
+  clientSocket.on('disconnect', () => forwardSocketEvent('disconnect', null));
+  // 내 좌석 정보 캐싱 (work 모드 전환 시 서버 응답)
+  clientSocket.on('user-mode-changed', (data) => {
+    if (clientSocket && data && data.id === clientSocket.id) {
+      if (data.mode === 'work' && data.seatIndex >= 0) {
+        savedSeat = {
+          seatIndex: data.seatIndex,
+          x: data.x, y: data.y,
+          direction: data.direction || 'back',
+        };
+      } else if (data.mode === 'rest') {
+        savedSeat = null;
+      }
+    }
+  });
+  clientSocket.onAny((event, data) => forwardSocketEvent(event, data));
+  return clientSocket;
+}
 
 // 파일 경로
 const svgPath = path.join(__dirname, 'pixelated-cartoon-boy.svg');
@@ -307,6 +348,68 @@ ipcMain.on('switch-mode', (event, mode) => {
   switchMode(mode);
 });
 
+// ── socket bridge IPC ──
+ipcMain.handle('socket:connect', async (_, joinData) => {
+  const s = getClientSocket();
+  if (s.connected) {
+    s.emit('join', joinData);
+    return { id: s.id, connected: true };
+  }
+  return new Promise((resolve) => {
+    let settled = false;
+    const cleanup = () => {
+      s.off('connect', onConnect);
+      s.off('connect_error', onError);
+    };
+    const onConnect = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      s.emit('join', joinData);
+      resolve({ id: s.id, connected: true });
+    };
+    const onError = (err) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve({ id: null, connected: false, error: err && err.message });
+    };
+    s.once('connect', onConnect);
+    s.once('connect_error', onError);
+    s.connect();
+  });
+});
+
+ipcMain.on('socket:emit', (_, payload) => {
+  if (clientSocket && clientSocket.connected) {
+    clientSocket.emit(payload.event, payload.data);
+  }
+});
+
+ipcMain.on('socket:disconnect', () => {
+  if (clientSocket) {
+    clientSocket.disconnect();
+    clientSocket = null;
+  }
+  savedSeat = null;
+});
+
+ipcMain.handle('socket:get-id', async () => {
+  return clientSocket ? clientSocket.id : null;
+});
+
+ipcMain.handle('socket:is-connected', async () => {
+  return !!(clientSocket && clientSocket.connected);
+});
+
+ipcMain.handle('socket:get-saved-seat', async () => {
+  return savedSeat;
+});
+
+ipcMain.on('socket:clear-saved-seat', () => {
+  savedSeat = null;
+});
+
 ipcMain.on('quit-app', () => {
   app.isQuitting = true;
   app.quit();
@@ -424,4 +527,8 @@ app.on('window-all-closed', () => {
 
 app.on('before-quit', () => {
   if (tray) tray.destroy();
+  if (clientSocket) {
+    try { clientSocket.disconnect(); } catch (e) {}
+    clientSocket = null;
+  }
 });

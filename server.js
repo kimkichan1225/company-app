@@ -194,17 +194,28 @@ io.on('connection', (socket) => {
     });
   });
 
-  // 모드 변경
-  socket.on('mode-change', (mode) => {
+  // 모드 변경 (payload: 'work' | 'rest' | { mode, seatIndex? })
+  socket.on('mode-change', (payload) => {
     const user = users.get(socket.id);
     if (!user) return;
+
+    const mode = typeof payload === 'string' ? payload : (payload && payload.mode);
+    const requestedSeat = (payload && typeof payload === 'object') ? payload.seatIndex : null;
+    if (mode !== 'work' && mode !== 'rest') return;
 
     releaseSeat(socket.id);
     user.seatIndex = -1;
     user.mode = mode;
 
     if (mode === 'work') {
-      const idx = assignSeat(socket.id);
+      let idx = -1;
+      if (typeof requestedSeat === 'number' && requestedSeat >= 0 &&
+          requestedSeat < SEATS.length && !seatAssignments.has(requestedSeat)) {
+        seatAssignments.set(requestedSeat, socket.id);
+        idx = requestedSeat;
+      } else {
+        idx = assignSeat(socket.id);
+      }
       user.seatIndex = idx;
       if (idx >= 0) {
         const pos = getSeatPosition(idx);
@@ -223,6 +234,11 @@ io.on('connection', (socket) => {
       y: user.y,
       direction: user.direction,
     });
+  });
+
+  // 유저 목록 재요청 (rest 재진입 시)
+  socket.on('request-users', () => {
+    socket.emit('users-list', Array.from(users.values()));
   });
 
   // 상태 변경

@@ -36,4 +36,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
   expandWindow: () => ipcRenderer.send('expand-window'),
   shrinkWindow: () => ipcRenderer.send('shrink-window'),
 
+  // Socket.io 브리지 (main process에서 연결 유지)
+  socketConnect: (joinData) => ipcRenderer.invoke('socket:connect', joinData),
+  socketEmit: (event, data) => ipcRenderer.send('socket:emit', { event, data }),
+  socketDisconnect: () => ipcRenderer.send('socket:disconnect'),
+  getSocketId: () => ipcRenderer.invoke('socket:get-id'),
+  isSocketConnected: () => ipcRenderer.invoke('socket:is-connected'),
+  getSavedSeat: () => ipcRenderer.invoke('socket:get-saved-seat'),
+  clearSavedSeat: () => ipcRenderer.send('socket:clear-saved-seat'),
+  onSocketEvent: (eventName, callback) => {
+    const handler = (_, msg) => { if (msg.event === eventName) callback(msg.data); };
+    ipcRenderer.on('socket:event', handler);
+    return () => ipcRenderer.removeListener('socket:event', handler);
+  },
 });
