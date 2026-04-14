@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
@@ -135,8 +135,56 @@ function downloadFile(url, dest) {
   });
 }
 
+// 업데이트 대기 마커 (자동 업데이트 실패 감지용)
+const pendingUpdatePath = path.join(app.getPath('userData'), 'pending-update.json');
+
+function writePendingUpdate(targetVersion, downloadUrl) {
+  try {
+    fs.writeFileSync(pendingUpdatePath, JSON.stringify({ targetVersion, downloadUrl }), 'utf8');
+  } catch (e) {}
+}
+
+function readPendingUpdate() {
+  try {
+    if (fs.existsSync(pendingUpdatePath)) {
+      return JSON.parse(fs.readFileSync(pendingUpdatePath, 'utf-8'));
+    }
+  } catch (e) {}
+  return null;
+}
+
+function clearPendingUpdate() {
+  try { if (fs.existsSync(pendingUpdatePath)) fs.unlinkSync(pendingUpdatePath); } catch (e) {}
+}
+
+const RELEASES_PAGE = 'https://github.com/kimkichan1225/company-app/releases/latest';
+
 async function checkForUpdate() {
   try {
+    // 이전 업데이트 시도가 실패했는지 먼저 확인
+    const pending = readPendingUpdate();
+    if (pending) {
+      if (pending.targetVersion === CURRENT_VERSION) {
+        // 업데이트 성공 — 마커 정리
+        clearPendingUpdate();
+      } else {
+        // 버전이 올라가지 않았음 → 자동 업데이트 실패
+        const parentWin = workWin || restWin;
+        const fallback = await dialog.showMessageBox(parentWin, {
+          type: 'warning',
+          title: '업데이트 실패',
+          message: `이전 자동 업데이트가 실패했습니다.\n현재 ${CURRENT_VERSION}, 목표 ${pending.targetVersion}\n\n수동 다운로드 페이지를 여시겠습니까?`,
+          buttons: ['다운로드 페이지 열기', '나중에'],
+          defaultId: 0,
+        });
+        clearPendingUpdate();
+        if (fallback.response === 0) {
+          shell.openExternal(pending.downloadUrl || RELEASES_PAGE);
+        }
+        return;
+      }
+    }
+
     const res = await httpGet(VERSION_URL);
     if (res.statusCode !== 200) return;
 
@@ -149,11 +197,16 @@ async function checkForUpdate() {
       type: 'info',
       title: '업데이트',
       message: `새 버전 ${remote.version}이 있습니다. (현재 ${CURRENT_VERSION})\n업데이트 하시겠습니까?`,
-      buttons: ['업데이트', '나중에'],
+      buttons: ['자동 업데이트', '수동 다운로드', '나중에'],
       defaultId: 0,
+      cancelId: 2,
     });
 
-    if (result.response !== 0) return;
+    if (result.response === 2) return;
+    if (result.response === 1) {
+      shell.openExternal(remote.downloadUrl || RELEASES_PAGE);
+      return;
+    }
 
     // ZIP 다운로드
     const tmpDir = app.getPath('temp');
@@ -186,11 +239,25 @@ del "%~f0"
     // Windows cmd는 CRLF 줄바꿈이 필요 — LF로 저장하면 파싱 깨짐
     fs.writeFileSync(batPath, batContent.replace(/\r?\n/g, '\r\n'), 'utf8');
 
+    // 실패 감지용 마커 기록
+    writePendingUpdate(remote.version, remote.downloadUrl);
+
     // 배치 실행 후 앱 종료
     execFile('cmd.exe', ['/c', 'start', '', '/min', batPath], { detached: true, stdio: 'ignore' });
     app.quit();
   } catch (err) {
     console.error('업데이트 확인 실패:', err.message);
+    const parentWin = workWin || restWin;
+    if (parentWin) {
+      const fallback = await dialog.showMessageBox(parentWin, {
+        type: 'warning',
+        title: '업데이트 중 오류',
+        message: `업데이트 중 오류가 발생했습니다.\n${err.message}\n\n수동 다운로드 페이지를 여시겠습니까?`,
+        buttons: ['다운로드 페이지 열기', '닫기'],
+        defaultId: 0,
+      });
+      if (fallback.response === 0) shell.openExternal(RELEASES_PAGE);
+    }
   }
 }
 
