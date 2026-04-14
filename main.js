@@ -135,26 +135,20 @@ function downloadFile(url, dest) {
   });
 }
 
-// 업데이트 대기 마커 (자동 업데이트 실패 감지용)
-const pendingUpdatePath = path.join(app.getPath('userData'), 'pending-update.json');
+// 업데이트 결과 기록 파일 (PS가 작성, Electron이 다음 실행에서 읽음)
+const updateResultPath = path.join(app.getPath('userData'), 'update-result.json');
 
-function writePendingUpdate(targetVersion, downloadUrl) {
+function readUpdateResult() {
   try {
-    fs.writeFileSync(pendingUpdatePath, JSON.stringify({ targetVersion, downloadUrl }), 'utf8');
-  } catch (e) {}
-}
-
-function readPendingUpdate() {
-  try {
-    if (fs.existsSync(pendingUpdatePath)) {
-      return JSON.parse(fs.readFileSync(pendingUpdatePath, 'utf-8'));
+    if (fs.existsSync(updateResultPath)) {
+      return JSON.parse(fs.readFileSync(updateResultPath, 'utf-8'));
     }
   } catch (e) {}
   return null;
 }
 
-function clearPendingUpdate() {
-  try { if (fs.existsSync(pendingUpdatePath)) fs.unlinkSync(pendingUpdatePath); } catch (e) {}
+function clearUpdateResult() {
+  try { if (fs.existsSync(updateResultPath)) fs.unlinkSync(updateResultPath); } catch (e) {}
 }
 
 // 시맨틱 버전 비교 (a > b: 1, a < b: -1, 같으면 0)
@@ -172,229 +166,193 @@ function compareVersions(a, b) {
 
 const RELEASES_PAGE = 'https://github.com/kimkichan1225/company-app/releases/latest';
 
+// 이전 업데이트 결과 확인 (앱 시작 직후 호출)
+async function handlePreviousUpdateResult() {
+  const result = readUpdateResult();
+  if (!result) return;
+  clearUpdateResult();
+
+  if (result.status === 'success') {
+    await dialog.showMessageBox({
+      type: 'info',
+      title: '업데이트 완료',
+      message: `FitCharacter가 v${result.version || CURRENT_VERSION}로 업데이트되었습니다.`,
+      buttons: ['확인'],
+    });
+  } else if (result.status === 'failed') {
+    const r = await dialog.showMessageBox({
+      type: 'error',
+      title: '업데이트 실패',
+      message: '이전 업데이트가 실패했습니다.',
+      detail: result.error ? `원인: ${result.error}` : '',
+      buttons: ['다운로드 페이지 열기', '닫기'],
+      defaultId: 0,
+    });
+    if (r.response === 0) shell.openExternal(RELEASES_PAGE);
+  } else if (result.status === 'in_progress') {
+    // PS가 완료 전에 중단됨
+    const r = await dialog.showMessageBox({
+      type: 'warning',
+      title: '업데이트 중단됨',
+      message: '이전 업데이트가 완료되지 못했습니다.',
+      detail: '수동 다운로드로 설치를 마칠 수 있습니다.',
+      buttons: ['다운로드 페이지 열기', '닫기'],
+      defaultId: 0,
+    });
+    if (r.response === 0) shell.openExternal(RELEASES_PAGE);
+  }
+}
+
+// 업데이트 확인 및 진행 (true 반환 시 앱이 종료 절차에 진입)
 async function checkForUpdate() {
   try {
-    // 이전 업데이트 시도가 실패했는지 먼저 확인
-    const pending = readPendingUpdate();
-    if (pending) {
-      // 현재 버전이 목표 이상이면 성공으로 간주 (수동 설치로 건너뛴 케이스 포함)
-      if (compareVersions(CURRENT_VERSION, pending.targetVersion) >= 0) {
-        clearPendingUpdate();
-      } else {
-        // 버전이 올라가지 않았음 → 자동 업데이트 실패
-        const parentWin = workWin || restWin;
-        const fallback = await dialog.showMessageBox(parentWin, {
-          type: 'warning',
-          title: '업데이트 실패',
-          message: `이전 자동 업데이트가 실패했습니다.\n현재 ${CURRENT_VERSION}, 목표 ${pending.targetVersion}\n\n수동 다운로드 페이지를 여시겠습니까?`,
-          buttons: ['다운로드 페이지 열기', '나중에'],
-          defaultId: 0,
-        });
-        clearPendingUpdate();
-        if (fallback.response === 0) {
-          shell.openExternal(pending.downloadUrl || RELEASES_PAGE);
-        }
-        return;
-      }
-    }
-
     const res = await httpGet(VERSION_URL);
-    if (res.statusCode !== 200) return;
+    if (res.statusCode !== 200) return false;
 
     const remote = JSON.parse(res.body.toString());
-    if (remote.version === CURRENT_VERSION) return;
+    if (compareVersions(remote.version, CURRENT_VERSION) <= 0) return false;
 
-    // 업데이트 가능한 윈도우 찾기
-    const parentWin = workWin || restWin;
-    const result = await dialog.showMessageBox(parentWin, {
+    // 업데이트 가능 안내 다이얼로그
+    const result = await dialog.showMessageBox({
       type: 'info',
-      title: '업데이트',
-      message: `새 버전 ${remote.version}이 있습니다. (현재 ${CURRENT_VERSION})\n업데이트 하시겠습니까?`,
-      buttons: ['자동 업데이트', '수동 다운로드', '나중에'],
+      title: '업데이트 가능',
+      message: `새 버전 ${remote.version}이 있습니다.`,
+      detail: `현재: ${CURRENT_VERSION}\n새 버전: ${remote.version}\n\n업데이트 시 앱이 종료되고, 설치 완료 후 앱을 다시 실행해주세요.`,
+      buttons: ['업데이트', '수동 다운로드', '나중에'],
       defaultId: 0,
       cancelId: 2,
     });
 
-    if (result.response === 2) return;
+    if (result.response === 2) return false;
     if (result.response === 1) {
       shell.openExternal(remote.downloadUrl || RELEASES_PAGE);
-      return;
+      return false;
     }
 
-    // ZIP 다운로드
+    // 다운로드 중 (간단한 안내 없이 블로킹 다운로드 — 대개 빠름)
     const tmpDir = app.getPath('temp');
     const zipPath = path.join(tmpDir, 'fitcharacter_update.zip');
     const extractDir = path.join(tmpDir, 'fitcharacter_update');
 
     await downloadFile(remote.downloadUrl, zipPath);
 
-    // PowerShell 업데이트 스크립트 작성
-    // (cmd 배치는 한글 경로 + cp949/UTF-8 인코딩 문제가 반복되어 PowerShell로 대체)
+    // PS 업데이터 스크립트 작성 (완전 숨김 모드, GUI 없음)
     const appDir = path.dirname(app.getPath('exe'));
     const ps1Path = path.join(tmpDir, 'fitcharacter_update.ps1');
     const exePath = app.getPath('exe');
+    const resultPath = updateResultPath;
+    const logPath = path.join(tmpDir, 'fitcharacter_update.log');
 
-    // PS1 단일따옴표는 리터럴 문자열 (이스케이프 불필요, 경로에 ' 없다고 가정)
     const ps1Content = `
 $ErrorActionPreference = 'Stop'
-$zipPath    = '${zipPath}'
-$extractDir = '${extractDir}'
-$appDir     = '${appDir}'
-$exePath    = '${exePath}'
-$logPath    = Join-Path $env:TEMP 'fitcharacter_update.log'
-
-# 콘솔 UTF-8 출력 강제 (한글 깨짐 방지)
-try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
-$Host.UI.RawUI.WindowTitle = 'FitCharacter 업데이트'
+$zipPath     = '${zipPath}'
+$extractDir  = '${extractDir}'
+$appDir      = '${appDir}'
+$exePath     = '${exePath}'
+$resultPath  = '${resultPath}'
+$logPath     = '${logPath}'
+$targetVer   = '${remote.version}'
 
 function Write-Log($msg) {
   $ts = Get-Date -Format 'HH:mm:ss'
   Add-Content -Path $logPath -Value "[$ts] $msg" -Encoding UTF8
 }
 
-Set-Content -Path $logPath -Value "--- FitCharacter update log ---" -Encoding UTF8
+function Write-Result($status, $err) {
+  $obj = [ordered]@{
+    status = $status
+    version = $targetVer
+    error = $err
+    time = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+  }
+  ($obj | ConvertTo-Json -Compress) | Out-File -FilePath $resultPath -Encoding UTF8 -Force
+}
 
-Write-Host ''
-Write-Host '========================================' -ForegroundColor Cyan
-Write-Host '   FitCharacter 업데이트 진행 중' -ForegroundColor Cyan
-Write-Host '========================================' -ForegroundColor Cyan
-Write-Host ''
+Set-Content -Path $logPath -Value "--- FitCharacter silent update log ---" -Encoding UTF8
+Write-Log "Update start, target=$targetVer, appDir=$appDir"
+Write-Result 'in_progress' $null
 
 try {
-  Write-Log "Update start, appDir=$appDir"
-
-  # 남은 FitCharacter 프로세스 정리 (실패해도 계속 진행)
-  Write-Host '[1/5] 실행 중인 FitCharacter 프로세스 정리...' -ForegroundColor Yellow
-  Get-Process -Name 'FitCharacter' -ErrorAction SilentlyContinue | ForEach-Object {
-    $pid_ = $_.Id
-    Stop-Process -Id $pid_ -Force -ErrorAction SilentlyContinue
-    if ($?) {
-      Write-Host "       → PID $pid_ 종료"
-    } else {
-      Write-Host "       → PID $pid_ 종료 실패 (무시, 자연 종료 대기)" -ForegroundColor DarkYellow
-    }
-  }
-
   # exe 파일 락 해제 대기 (최대 30초)
-  Write-Host '[2/5] 파일 락 해제 대기...' -ForegroundColor Yellow
-  $unlockWait = 0
-  while ($unlockWait -lt 60) {
+  $waited = 0
+  while ($waited -lt 60) {
     try {
       $fs = [System.IO.File]::Open($exePath, 'Open', 'ReadWrite', 'None')
       $fs.Close()
-      Write-Host "       → 해제 완료 (\${unlockWait}x500ms)"
-      Write-Log "Exe unlocked after \${unlockWait}x500ms"
+      Write-Log "Exe unlocked"
       break
     } catch {
       Start-Sleep -Milliseconds 500
-      $unlockWait++
+      $waited++
     }
   }
 
   # ZIP 압축 해제
-  Write-Host '[3/5] 업데이트 파일 압축 해제...' -ForegroundColor Yellow
-  Write-Log "Extracting ZIP..."
+  Write-Log "Extracting ZIP"
   if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
   New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
-  Write-Host '       → 완료'
 
   # 파일 복사 (최대 15회 재시도)
-  Write-Host '[4/5] 설치 폴더에 파일 복사...' -ForegroundColor Yellow
-  $maxRetries = 15
   $copied = $false
-  for ($i = 0; $i -lt $maxRetries; $i++) {
+  for ($i = 0; $i -lt 15; $i++) {
     try {
       Copy-Item -Path (Join-Path $extractDir '*') -Destination $appDir -Recurse -Force -ErrorAction Stop
-      Write-Host "       → 성공 (시도 $($i+1)회)"
       Write-Log "Copy success on attempt $($i+1)"
       $copied = $true
       break
     } catch {
-      Write-Host "       → 시도 $($i+1) 실패, 재시도..." -ForegroundColor DarkYellow
       Write-Log "Copy attempt $($i+1) failed: $($_.Exception.Message)"
       Start-Sleep -Seconds 1
     }
   }
-  if (-not $copied) { throw "파일 복사 실패 ($maxRetries 회 재시도 후 중단)" }
+  if (-not $copied) { throw "파일 복사 실패 (15 회 재시도 후 중단)" }
 
+  # 정리
   Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
   Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
 
-  # 새 버전 실행
-  Write-Host '[5/5] 새 버전 실행...' -ForegroundColor Yellow
-  Write-Log "Starting new exe..."
-  # ShellExecute로 띄워 Explorer 더블클릭처럼 완전히 분리 (PS 종료/X 무관)
-  $psi = New-Object System.Diagnostics.ProcessStartInfo
-  $psi.FileName = $exePath
-  $psi.UseShellExecute = $true
-  $psi.WorkingDirectory = $appDir
-  [System.Diagnostics.Process]::Start($psi) | Out-Null
-  Start-Sleep -Seconds 1
-  Write-Host '       → 실행 완료'
   Write-Log "Update complete"
-
-  Write-Host ''
-  Write-Host '========================================' -ForegroundColor Green
-  Write-Host '   업데이트 성공!' -ForegroundColor Green
-  Write-Host '========================================' -ForegroundColor Green
-  Write-Host ''
-  Write-Host '5초 후 이 창이 자동으로 닫힙니다...' -ForegroundColor Gray
-  Start-Sleep -Seconds 5
-  # 창 강제 종료: Exit만으론 안 먹히는 케이스가 있어 Stop-Process 병용
-  Stop-Process -Id $PID -Force
-  [Environment]::Exit(0)
+  Write-Result 'success' $null
 } catch {
-  Write-Log "FATAL: $($_ | Out-String)"
-  Write-Host ''
-  Write-Host '========================================' -ForegroundColor Red
-  Write-Host '   업데이트 실패' -ForegroundColor Red
-  Write-Host '========================================' -ForegroundColor Red
-  Write-Host ''
-  Write-Host "에러: $($_.Exception.Message)" -ForegroundColor Red
-  Write-Host ''
-  Write-Host "로그 파일: $logPath" -ForegroundColor Gray
-  Write-Host ''
-  Write-Host '잠시 후 GitHub 다운로드 페이지를 엽니다...' -ForegroundColor Yellow
-  Start-Sleep -Seconds 3
-  Start-Process 'https://github.com/kimkichan1225/company-app/releases/latest'
-  Write-Host ''
-  Write-Host '이 창은 15초 후 자동으로 닫힙니다. 에러 내용을 먼저 확인하세요.' -ForegroundColor Gray
-  Start-Sleep -Seconds 15
-  Stop-Process -Id $PID -Force
-  [Environment]::Exit(1)
+  Write-Log "FATAL: $($_.Exception.Message)"
+  Write-Result 'failed' $_.Exception.Message
 }
 `;
 
     // UTF-8 BOM 포함으로 저장 → PowerShell이 한글 경로를 정확히 읽음
     fs.writeFileSync(ps1Path, '\uFEFF' + ps1Content, 'utf8');
 
-    // 실패 감지용 마커 기록
-    writePendingUpdate(remote.version, remote.downloadUrl);
+    // 설치 안내 → 사용자에게 앱 종료 예고
+    await dialog.showMessageBox({
+      type: 'info',
+      title: '설치 준비 완료',
+      message: '업데이트 파일이 준비되었습니다.',
+      detail: '"확인"을 누르면 앱이 종료되고 백그라운드에서 설치가 진행됩니다.\n\n설치는 약 5~15초 소요됩니다.\n설치 완료 후 FitCharacter를 다시 실행해주세요.',
+      buttons: ['확인'],
+    });
 
-    // PowerShell 실행 후 앱 종료
-    // cmd /c start로 감싸서 Electron 종료와 무관하게 독립 프로세스로 실행
-    // (detached만으로는 Windows에서 부모 종료 시 자식도 죽는 케이스 발생)
-    const child = execFile('cmd.exe',
-      ['/c', 'start', '', 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1Path],
-      { detached: true, stdio: 'ignore' });
+    // PS를 완전 숨김 모드로 실행 (콘솔 창 없음)
+    const child = execFile('powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', ps1Path],
+      { detached: true, stdio: 'ignore', windowsHide: true });
     child.unref();
-    // Electron이 PowerShell 기동 시간을 줄 여유 (1초) 후 종료
-    setTimeout(() => app.quit(), 1000);
-    return;
+
+    // PS 기동 시간 확보 후 종료
+    setTimeout(() => app.quit(), 800);
+    return true;
   } catch (err) {
     console.error('업데이트 확인 실패:', err.message);
-    const parentWin = workWin || restWin;
-    if (parentWin) {
-      const fallback = await dialog.showMessageBox(parentWin, {
-        type: 'warning',
-        title: '업데이트 중 오류',
-        message: `업데이트 중 오류가 발생했습니다.\n${err.message}\n\n수동 다운로드 페이지를 여시겠습니까?`,
-        buttons: ['다운로드 페이지 열기', '닫기'],
-        defaultId: 0,
-      });
-      if (fallback.response === 0) shell.openExternal(RELEASES_PAGE);
-    }
+    const r = await dialog.showMessageBox({
+      type: 'warning',
+      title: '업데이트 중 오류',
+      message: '업데이트 중 오류가 발생했습니다.',
+      detail: `${err.message}\n\n수동 다운로드 페이지를 여시겠습니까?`,
+      buttons: ['다운로드 페이지 열기', '닫기'],
+      defaultId: 0,
+    });
+    if (r.response === 0) shell.openExternal(RELEASES_PAGE);
+    return false;
   }
 }
 
@@ -424,13 +382,12 @@ function createWorkWindow() {
   workWin.setIgnoreMouseEvents(false);
   workWin.setAlwaysOnTop(true, 'screen-saver');
 
-  // 화면 정보 전달 + 업데이트 체크
+  // 화면 정보 전달 (업데이트 체크는 앱 시작 시에만 수행, 트레이 메뉴에서 수동 확인 가능)
   workWin.webContents.on('did-finish-load', () => {
     workWin.webContents.send('screen-bounds', {
       width: display.workAreaSize.width,
       height: display.workAreaSize.height,
     });
-    checkForUpdate();
   });
 
   workWin.on('closed', () => {
@@ -730,8 +687,17 @@ function createSetupWindow() {
 }
 
 // 앱 시작
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   createTray();
+
+  // 1) 이전 업데이트 결과 안내 (성공/실패/중단)
+  await handlePreviousUpdateResult();
+
+  // 2) 새 업데이트 확인 및 진행 (업데이트 시 앱 종료되므로 창 생성 생략)
+  const updating = await checkForUpdate();
+  if (updating) return;
+
+  // 3) 정상 실행
   if (hasProfile()) {
     createWorkWindow();
   } else {
