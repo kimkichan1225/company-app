@@ -324,7 +324,9 @@ try {
   # 새 버전 실행
   Write-Host '[5/5] 새 버전 실행...' -ForegroundColor Yellow
   Write-Log "Starting new exe..."
-  Start-Process -FilePath $exePath
+  # cmd /c start로 감싸서 PS 콘솔 그룹에서 완전히 분리 (PS 창 닫아도 앱 생존)
+  Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'start', '""', ('"' + $exePath + '"') -WindowStyle Hidden
+  Start-Sleep -Seconds 1
   Write-Host '       → 실행 완료'
   Write-Log "Update complete"
 
