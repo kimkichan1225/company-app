@@ -263,17 +263,22 @@ Write-Host ''
 try {
   Write-Log "Update start, appDir=$appDir"
 
-  # 남은 FitCharacter 프로세스가 있으면 강제 종료
+  # 남은 FitCharacter 프로세스 정리 (실패해도 계속 진행)
   Write-Host '[1/5] 실행 중인 FitCharacter 프로세스 정리...' -ForegroundColor Yellow
   Get-Process -Name 'FitCharacter' -ErrorAction SilentlyContinue | ForEach-Object {
-    Write-Host "       → PID $($_.Id) 종료"
-    $_.Kill(); $_.WaitForExit(3000)
+    $pid_ = $_.Id
+    Stop-Process -Id $pid_ -Force -ErrorAction SilentlyContinue
+    if ($?) {
+      Write-Host "       → PID $pid_ 종료"
+    } else {
+      Write-Host "       → PID $pid_ 종료 실패 (무시, 자연 종료 대기)" -ForegroundColor DarkYellow
+    }
   }
 
-  # exe 파일 락 해제 대기 (최대 20초)
+  # exe 파일 락 해제 대기 (최대 30초)
   Write-Host '[2/5] 파일 락 해제 대기...' -ForegroundColor Yellow
   $unlockWait = 0
-  while ($unlockWait -lt 40) {
+  while ($unlockWait -lt 60) {
     try {
       $fs = [System.IO.File]::Open($exePath, 'Open', 'ReadWrite', 'None')
       $fs.Close()
