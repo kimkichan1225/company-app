@@ -335,6 +335,7 @@ try {
   Write-Host ''
   Write-Host '5초 후 이 창이 자동으로 닫힙니다...' -ForegroundColor Gray
   Start-Sleep -Seconds 5
+  [Environment]::Exit(0)
 } catch {
   Write-Log "FATAL: $($_ | Out-String)"
   Write-Host ''
@@ -352,6 +353,7 @@ try {
   Write-Host ''
   Write-Host '이 창은 15초 후 자동으로 닫힙니다. 에러 내용을 먼저 확인하세요.' -ForegroundColor Gray
   Start-Sleep -Seconds 15
+  [Environment]::Exit(1)
 }
 `;
 
