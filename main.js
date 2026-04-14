@@ -475,10 +475,17 @@ function switchMode(mode) {
 
 // 트레이 아이콘 생성
 function createTray() {
-  // 간단한 16x16 아이콘 생성
-  const icon = nativeImage.createFromDataURL(
-    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMklEQVQ4T2P8z8BQz0BAwMCIBDCKGBhYGP4zMDIwICsAMRgYGP4zMDAwoOuBmUL/GQBR3REREfXJYQAAAABJRU5ErkJggg=='
-  );
+  // 트레이 아이콘 (파일 우선, 없으면 기본 폴백)
+  const iconPath = path.join(__dirname, 'tray-icon.png');
+  let icon;
+  try {
+    icon = nativeImage.createFromPath(iconPath);
+    if (icon.isEmpty()) throw new Error('icon empty');
+  } catch (e) {
+    icon = nativeImage.createFromDataURL(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMklEQVQ4T2P8z8BQz0BAwMCIBDCKGBhYGP4zMDIwICsAMRgYGP4zMDAwoOuBmUL/GQBR3REREfXJYQAAAABJRU5ErkJggg=='
+    );
+  }
   tray = new Tray(icon);
 
   const contextMenu = Menu.buildFromTemplate([
