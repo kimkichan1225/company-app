@@ -356,11 +356,16 @@ try {
     // 실패 감지용 마커 기록
     writePendingUpdate(remote.version, remote.downloadUrl);
 
-    // PowerShell 실행 후 앱 종료 (창을 띄워 진행 상황 시각화)
-    execFile('powershell.exe',
-      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1Path],
+    // PowerShell 실행 후 앱 종료
+    // cmd /c start로 감싸서 Electron 종료와 무관하게 독립 프로세스로 실행
+    // (detached만으로는 Windows에서 부모 종료 시 자식도 죽는 케이스 발생)
+    const child = execFile('cmd.exe',
+      ['/c', 'start', '', 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1Path],
       { detached: true, stdio: 'ignore' });
-    app.quit();
+    child.unref();
+    // Electron이 PowerShell 기동 시간을 줄 여유 (1초) 후 종료
+    setTimeout(() => app.quit(), 1000);
+    return;
   } catch (err) {
     console.error('업데이트 확인 실패:', err.message);
     const parentWin = workWin || restWin;
