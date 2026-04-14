@@ -324,8 +324,12 @@ try {
   # 새 버전 실행
   Write-Host '[5/5] 새 버전 실행...' -ForegroundColor Yellow
   Write-Log "Starting new exe..."
-  # cmd /c start로 감싸서 PS 콘솔 그룹에서 완전히 분리 (PS 창 닫아도 앱 생존)
-  Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', 'start', '""', ('"' + $exePath + '"') -WindowStyle Hidden
+  # ShellExecute로 띄워 Explorer 더블클릭처럼 완전히 분리 (PS 종료/X 무관)
+  $psi = New-Object System.Diagnostics.ProcessStartInfo
+  $psi.FileName = $exePath
+  $psi.UseShellExecute = $true
+  $psi.WorkingDirectory = $appDir
+  [System.Diagnostics.Process]::Start($psi) | Out-Null
   Start-Sleep -Seconds 1
   Write-Host '       → 실행 완료'
   Write-Log "Update complete"
@@ -337,6 +341,8 @@ try {
   Write-Host ''
   Write-Host '5초 후 이 창이 자동으로 닫힙니다...' -ForegroundColor Gray
   Start-Sleep -Seconds 5
+  # 창 강제 종료: Exit만으론 안 먹히는 케이스가 있어 Stop-Process 병용
+  Stop-Process -Id $PID -Force
   [Environment]::Exit(0)
 } catch {
   Write-Log "FATAL: $($_ | Out-String)"
@@ -355,6 +361,7 @@ try {
   Write-Host ''
   Write-Host '이 창은 15초 후 자동으로 닫힙니다. 에러 내용을 먼저 확인하세요.' -ForegroundColor Gray
   Start-Sleep -Seconds 15
+  Stop-Process -Id $PID -Force
   [Environment]::Exit(1)
 }
 `;
