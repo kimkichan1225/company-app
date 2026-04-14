@@ -253,14 +253,67 @@ $resultPath  = '${resultPath}'
 $logPath     = '${logPath}'
 $targetVer   = '${remote.version}'
 
+# WinForms 기반 진행 상황 GUI
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'FitCharacter 업데이트'
+$form.Size = New-Object System.Drawing.Size(470, 200)
+$form.StartPosition = 'CenterScreen'
+$form.FormBorderStyle = 'FixedDialog'
+$form.MaximizeBox = $false
+$form.MinimizeBox = $false
+$form.ControlBox = $false
+$form.TopMost = $true
+$form.BackColor = [System.Drawing.Color]::FromArgb(26, 26, 46)
+
+$title = New-Object System.Windows.Forms.Label
+$title.Text = 'FitCharacter 업데이트 설치 중'
+$title.Font = New-Object System.Drawing.Font('Segoe UI', 12, [System.Drawing.FontStyle]::Bold)
+$title.ForeColor = [System.Drawing.Color]::White
+$title.Location = New-Object System.Drawing.Point(20, 18)
+$title.Size = New-Object System.Drawing.Size(430, 28)
+$form.Controls.Add($title)
+
+$status = New-Object System.Windows.Forms.Label
+$status.Text = '준비 중...'
+$status.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+$status.ForeColor = [System.Drawing.Color]::FromArgb(180, 200, 230)
+$status.Location = New-Object System.Drawing.Point(20, 56)
+$status.Size = New-Object System.Drawing.Size(430, 22)
+$form.Controls.Add($status)
+
+$bar = New-Object System.Windows.Forms.ProgressBar
+$bar.Location = New-Object System.Drawing.Point(20, 90)
+$bar.Size = New-Object System.Drawing.Size(430, 25)
+$bar.Minimum = 0
+$bar.Maximum = 100
+$bar.Value = 0
+$form.Controls.Add($bar)
+
+$hint = New-Object System.Windows.Forms.Label
+$hint.Text = '설치 완료 후 이 창이 자동으로 닫힙니다. 닫지 마세요.'
+$hint.Font = New-Object System.Drawing.Font('Segoe UI', 8)
+$hint.ForeColor = [System.Drawing.Color]::FromArgb(140, 160, 190)
+$hint.Location = New-Object System.Drawing.Point(20, 128)
+$hint.Size = New-Object System.Drawing.Size(430, 20)
+$form.Controls.Add($hint)
+
+function Update-UI($value, $text) {
+  $bar.Value = [Math]::Min(100, [Math]::Max(0, $value))
+  $status.Text = $text
+  [System.Windows.Forms.Application]::DoEvents()
+}
+
 function Write-Log($msg) {
   $ts = Get-Date -Format 'HH:mm:ss'
   Add-Content -Path $logPath -Value "[$ts] $msg" -Encoding UTF8
 }
 
-function Write-Result($status, $err) {
+function Write-Result($st, $err) {
   $obj = [ordered]@{
-    status = $status
+    status = $st
     version = $targetVer
     error = $err
     time = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
@@ -268,55 +321,81 @@ function Write-Result($status, $err) {
   ($obj | ConvertTo-Json -Compress) | Out-File -FilePath $resultPath -Encoding UTF8 -Force
 }
 
-Set-Content -Path $logPath -Value "--- FitCharacter silent update log ---" -Encoding UTF8
-Write-Log "Update start, target=$targetVer, appDir=$appDir"
+Set-Content -Path $logPath -Value "--- FitCharacter GUI update log ---" -Encoding UTF8
+Write-Log "Update start, target=$targetVer"
 Write-Result 'in_progress' $null
 
+$form.Show()
+[System.Windows.Forms.Application]::DoEvents()
+
 try {
-  # exe 파일 락 해제 대기 (최대 30초)
+  Update-UI 10 '이전 프로세스 종료 대기 중...'
+  Write-Log 'Waiting for exe unlock'
   $waited = 0
   while ($waited -lt 60) {
     try {
       $fs = [System.IO.File]::Open($exePath, 'Open', 'ReadWrite', 'None')
       $fs.Close()
-      Write-Log "Exe unlocked"
       break
     } catch {
       Start-Sleep -Milliseconds 500
       $waited++
+      [System.Windows.Forms.Application]::DoEvents()
     }
   }
+  Write-Log "Unlocked after $waited x 500ms"
 
-  # ZIP 압축 해제
-  Write-Log "Extracting ZIP"
+  Update-UI 30 '업데이트 파일 압축 해제 중...'
   if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
   New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+  Write-Log 'Extracted'
 
-  # 파일 복사 (최대 15회 재시도)
+  Update-UI 50 '파일 복사 중...'
   $copied = $false
   for ($i = 0; $i -lt 15; $i++) {
     try {
       Copy-Item -Path (Join-Path $extractDir '*') -Destination $appDir -Recurse -Force -ErrorAction Stop
-      Write-Log "Copy success on attempt $($i+1)"
       $copied = $true
+      Write-Log "Copy success on attempt $($i+1)"
       break
     } catch {
+      Update-UI 50 "파일 복사 재시도 중... ($($i+1)/15)"
       Write-Log "Copy attempt $($i+1) failed: $($_.Exception.Message)"
       Start-Sleep -Seconds 1
+      [System.Windows.Forms.Application]::DoEvents()
     }
   }
-  if (-not $copied) { throw "파일 복사 실패 (15 회 재시도 후 중단)" }
+  if (-not $copied) { throw '파일 복사 실패 (15회 재시도 후 중단)' }
 
-  # 정리
+  Update-UI 90 '정리 중...'
   Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
   Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
 
-  Write-Log "Update complete"
+  Update-UI 100 '업데이트 완료!'
+  $title.Text = '✓ 업데이트 완료'
+  $title.ForeColor = [System.Drawing.Color]::FromArgb(46, 204, 113)
+  $hint.Text = 'FitCharacter를 다시 실행해주세요. 3초 후 창이 자동으로 닫힙니다.'
+  [System.Windows.Forms.Application]::DoEvents()
+
+  Write-Log 'Update complete'
   Write-Result 'success' $null
+
+  Start-Sleep -Seconds 3
+  $form.Close()
 } catch {
   Write-Log "FATAL: $($_.Exception.Message)"
   Write-Result 'failed' $_.Exception.Message
+
+  $title.Text = '✗ 업데이트 실패'
+  $title.ForeColor = [System.Drawing.Color]::FromArgb(231, 76, 60)
+  $status.Text = $_.Exception.Message
+  $bar.Value = 0
+  $hint.Text = '10초 후 창이 자동으로 닫힙니다.'
+  [System.Windows.Forms.Application]::DoEvents()
+
+  Start-Sleep -Seconds 10
+  $form.Close()
 }
 `;
 
@@ -328,18 +407,19 @@ try {
       type: 'info',
       title: '설치 준비 완료',
       message: '업데이트 파일이 준비되었습니다.',
-      detail: '"확인"을 누르면 앱이 종료되고 백그라운드에서 설치가 진행됩니다.\n\n설치는 약 5~15초 소요됩니다.\n설치 완료 후 FitCharacter를 다시 실행해주세요.',
+      detail: '"확인"을 누르면 앱이 종료됩니다.\n\n별도 진행 상황 창이 열려 설치를 진행하고\n완료되면 자동으로 닫힙니다.\n\n설치 후 FitCharacter를 다시 실행해주세요.',
       buttons: ['확인'],
     });
 
-    // PS를 완전 숨김 모드로 실행 (콘솔 창 없음)
-    const child = execFile('powershell.exe',
-      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', ps1Path],
-      { detached: true, stdio: 'ignore', windowsHide: true });
+    // cmd /c start 래핑으로 독립 프로세스 실행 (Electron 종료와 무관)
+    // PS 콘솔은 -WindowStyle Hidden으로 숨기고, WinForms 다이얼로그만 표시
+    const child = execFile('cmd.exe',
+      ['/c', 'start', '', 'powershell.exe', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', ps1Path],
+      { detached: true, stdio: 'ignore' });
     child.unref();
 
-    // PS 기동 시간 확보 후 종료
-    setTimeout(() => app.quit(), 800);
+    // PS 기동 시간 확보 후 종료 (WinForms 초기화 여유)
+    setTimeout(() => app.quit(), 1500);
     return true;
   } catch (err) {
     console.error('업데이트 확인 실패:', err.message);
