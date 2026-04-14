@@ -183,7 +183,8 @@ start "" "${exePath}"
 del "%~f0"
 `;
 
-    fs.writeFileSync(batPath, batContent, 'utf8');
+    // Windows cmd는 CRLF 줄바꿈이 필요 — LF로 저장하면 파싱 깨짐
+    fs.writeFileSync(batPath, batContent.replace(/\r?\n/g, '\r\n'), 'utf8');
 
     // 배치 실행 후 앱 종료
     execFile('cmd.exe', ['/c', 'start', '', '/min', batPath], { detached: true, stdio: 'ignore' });
