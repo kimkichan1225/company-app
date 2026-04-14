@@ -85,18 +85,18 @@ const users = new Map();
 
 // 책상 좌석 위치
 const SEATS = [
-  { col: 2,  row: 4,  dir: 'back' },
-  { col: 3,  row: 4,  dir: 'back' },
-  { col: 4,  row: 4,  dir: 'back' },
-  { col: 5,  row: 4,  dir: 'back' },
-  { col: 2,  row: 8,  dir: 'back' },
-  { col: 3,  row: 8,  dir: 'back' },
-  { col: 4,  row: 8,  dir: 'back' },
-  { col: 5,  row: 8,  dir: 'back' },
-  { col: 2,  row: 13, dir: 'back' },
-  { col: 3,  row: 13, dir: 'back' },
-  { col: 4,  row: 13, dir: 'back' },
-  { col: 5,  row: 13, dir: 'back' },
+  { col: 2,  row: 3,  dir: 'back' },
+  { col: 3,  row: 3,  dir: 'back' },
+  { col: 6,  row: 3,  dir: 'back' },
+  { col: 7,  row: 3,  dir: 'back' },
+  { col: 2,  row: 6,  dir: 'back' },
+  { col: 3,  row: 6,  dir: 'back' },
+  { col: 6,  row: 6,  dir: 'back' },
+  { col: 7,  row: 6,  dir: 'back' },
+  { col: 2,  row: 9,  dir: 'back' },
+  { col: 3,  row: 9,  dir: 'back' },
+  { col: 6,  row: 9,  dir: 'back' },
+  { col: 7,  row: 9,  dir: 'back' },
 ];
 
 const seatAssignments = new Map();
