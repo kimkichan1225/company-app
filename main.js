@@ -230,6 +230,10 @@ $appDir     = '${appDir}'
 $exePath    = '${exePath}'
 $logPath    = Join-Path $env:TEMP 'fitcharacter_update.log'
 
+# 콘솔 UTF-8 출력 강제 (한글 깨짐 방지)
+try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+$Host.UI.RawUI.WindowTitle = 'FitCharacter 업데이트'
+
 function Write-Log($msg) {
   $ts = Get-Date -Format 'HH:mm:ss'
   Add-Content -Path $logPath -Value "[$ts] $msg" -Encoding UTF8
@@ -237,15 +241,30 @@ function Write-Log($msg) {
 
 Set-Content -Path $logPath -Value "--- FitCharacter update log ---" -Encoding UTF8
 
+Write-Host ''
+Write-Host '========================================' -ForegroundColor Cyan
+Write-Host '   FitCharacter 업데이트 진행 중' -ForegroundColor Cyan
+Write-Host '========================================' -ForegroundColor Cyan
+Write-Host ''
+
 try {
   Write-Log "Update start, appDir=$appDir"
 
-  # Electron 프로세스가 완전히 종료될 때까지 exe 락 해제 대기 (최대 20초)
+  # 남은 FitCharacter 프로세스가 있으면 강제 종료
+  Write-Host '[1/5] 실행 중인 FitCharacter 프로세스 정리...' -ForegroundColor Yellow
+  Get-Process -Name 'FitCharacter' -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host "       → PID $($_.Id) 종료"
+    $_.Kill(); $_.WaitForExit(3000)
+  }
+
+  # exe 파일 락 해제 대기 (최대 20초)
+  Write-Host '[2/5] 파일 락 해제 대기...' -ForegroundColor Yellow
   $unlockWait = 0
   while ($unlockWait -lt 40) {
     try {
       $fs = [System.IO.File]::Open($exePath, 'Open', 'ReadWrite', 'None')
       $fs.Close()
+      Write-Host "       → 해제 완료 (${unlockWait}x500ms)"
       Write-Log "Exe unlocked after ${unlockWait}x500ms"
       break
     } catch {
@@ -255,38 +274,66 @@ try {
   }
 
   # ZIP 압축 해제
+  Write-Host '[3/5] 업데이트 파일 압축 해제...' -ForegroundColor Yellow
   Write-Log "Extracting ZIP..."
   if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
   New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+  Write-Host '       → 완료'
 
-  # 파일 복사 — 락이 풀리지 않은 파일이 있을 수 있어 최대 15회 재시도
+  # 파일 복사 (최대 15회 재시도)
+  Write-Host '[4/5] 설치 폴더에 파일 복사...' -ForegroundColor Yellow
   $maxRetries = 15
   $copied = $false
   for ($i = 0; $i -lt $maxRetries; $i++) {
     try {
       Copy-Item -Path (Join-Path $extractDir '*') -Destination $appDir -Recurse -Force -ErrorAction Stop
+      Write-Host "       → 성공 (시도 $($i+1)회)"
       Write-Log "Copy success on attempt $($i+1)"
       $copied = $true
       break
     } catch {
+      Write-Host "       → 시도 $($i+1) 실패, 재시도..." -ForegroundColor DarkYellow
       Write-Log "Copy attempt $($i+1) failed: $($_.Exception.Message)"
       Start-Sleep -Seconds 1
     }
   }
-  if (-not $copied) { throw "Copy failed after $maxRetries retries" }
+  if (-not $copied) { throw "파일 복사 실패 ($maxRetries 회 재시도 후 중단)" }
 
-  # 정리
   Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
   Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
 
+  # 새 버전 실행
+  Write-Host '[5/5] 새 버전 실행...' -ForegroundColor Yellow
   Write-Log "Starting new exe..."
   Start-Process -FilePath $exePath
+  Write-Host '       → 실행 완료'
   Write-Log "Update complete"
+
+  Write-Host ''
+  Write-Host '========================================' -ForegroundColor Green
+  Write-Host '   업데이트 성공!' -ForegroundColor Green
+  Write-Host '========================================' -ForegroundColor Green
+  Write-Host ''
+  Write-Host '5초 후 이 창이 자동으로 닫힙니다...' -ForegroundColor Gray
+  Start-Sleep -Seconds 5
 } catch {
   Write-Log "FATAL: $($_ | Out-String)"
-  # 업데이트 실패 시 GitHub 릴리즈 페이지 폴백
+  Write-Host ''
+  Write-Host '========================================' -ForegroundColor Red
+  Write-Host '   업데이트 실패' -ForegroundColor Red
+  Write-Host '========================================' -ForegroundColor Red
+  Write-Host ''
+  Write-Host "에러: $($_.Exception.Message)" -ForegroundColor Red
+  Write-Host ''
+  Write-Host "로그 파일: $logPath" -ForegroundColor Gray
+  Write-Host ''
+  Write-Host '잠시 후 GitHub 다운로드 페이지를 엽니다...' -ForegroundColor Yellow
+  Start-Sleep -Seconds 3
   Start-Process 'https://github.com/kimkichan1225/company-app/releases/latest'
+  Write-Host ''
+  Write-Host '이 창은 15초 후 자동으로 닫힙니다. 에러 내용을 먼저 확인하세요.' -ForegroundColor Gray
+  Start-Sleep -Seconds 15
 }
 `;
 
@@ -296,9 +343,9 @@ try {
     // 실패 감지용 마커 기록
     writePendingUpdate(remote.version, remote.downloadUrl);
 
-    // PowerShell 실행 후 앱 종료
+    // PowerShell 실행 후 앱 종료 (창을 띄워 진행 상황 시각화)
     execFile('powershell.exe',
-      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', ps1Path],
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ps1Path],
       { detached: true, stdio: 'ignore' });
     app.quit();
   } catch (err) {
