@@ -228,26 +228,65 @@ $zipPath    = '${zipPath}'
 $extractDir = '${extractDir}'
 $appDir     = '${appDir}'
 $exePath    = '${exePath}'
+$logPath    = Join-Path $env:TEMP 'fitcharacter_update.log'
+
+function Write-Log($msg) {
+  $ts = Get-Date -Format 'HH:mm:ss'
+  Add-Content -Path $logPath -Value "[$ts] $msg" -Encoding UTF8
+}
+
+Set-Content -Path $logPath -Value "--- FitCharacter update log ---" -Encoding UTF8
 
 try {
-  # 이전 Electron 프로세스가 완전히 종료되도록 대기
-  Start-Sleep -Seconds 3
+  Write-Log "Update start, appDir=$appDir"
 
+  # Electron 프로세스가 완전히 종료될 때까지 exe 락 해제 대기 (최대 20초)
+  $unlockWait = 0
+  while ($unlockWait -lt 40) {
+    try {
+      $fs = [System.IO.File]::Open($exePath, 'Open', 'ReadWrite', 'None')
+      $fs.Close()
+      Write-Log "Exe unlocked after ${unlockWait}x500ms"
+      break
+    } catch {
+      Start-Sleep -Milliseconds 500
+      $unlockWait++
+    }
+  }
+
+  # ZIP 압축 해제
+  Write-Log "Extracting ZIP..."
   if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
   New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
   Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
 
-  # ZIP 루트의 모든 파일/폴더를 설치 폴더에 덮어쓰기
-  Copy-Item -Path (Join-Path $extractDir '*') -Destination $appDir -Recurse -Force
+  # 파일 복사 — 락이 풀리지 않은 파일이 있을 수 있어 최대 15회 재시도
+  $maxRetries = 15
+  $copied = $false
+  for ($i = 0; $i -lt $maxRetries; $i++) {
+    try {
+      Copy-Item -Path (Join-Path $extractDir '*') -Destination $appDir -Recurse -Force -ErrorAction Stop
+      Write-Log "Copy success on attempt $($i+1)"
+      $copied = $true
+      break
+    } catch {
+      Write-Log "Copy attempt $($i+1) failed: $($_.Exception.Message)"
+      Start-Sleep -Seconds 1
+    }
+  }
+  if (-not $copied) { throw "Copy failed after $maxRetries retries" }
 
+  # 정리
   Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
   Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
 
+  Write-Log "Starting new exe..."
   Start-Process -FilePath $exePath
+  Write-Log "Update complete"
 } catch {
-  # 실패 시 로그 남기기 (다음 앱 실행에서 감지용)
-  $logPath = Join-Path $env:TEMP 'fitcharacter_update_error.log'
-  $_ | Out-String | Out-File -FilePath $logPath -Encoding UTF8
+  Write-Log "FATAL: $($_ | Out-String)"
+  # 업데이트 실패 시 GitHub 릴리즈 페이지 폴백
+  Start-Process 'https://github.com/kimkichan1225/company-app/releases/latest'
 }
 `;
 
