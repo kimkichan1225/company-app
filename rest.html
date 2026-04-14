@@ -253,20 +253,20 @@ const TF = T.TILE_FLOOR, VD = T.VENDING, CT = T.COUNTER, DV = T.DIVIDER;
 const MAP = [
 // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31
   [W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W], // 0
-  [L, _, _, _, _, _, _, _, _, _, _,DV, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 1
-  [L, _, M, M, _, _, M, M, _, _, _,DV, _, _, _, _, _, _, _,DV, _,TF,WB,TF,TF,TF,TF,TF,WB,TF, _,R], // 2
-  [L, _, D, D, _, _, D, D, _, _, _,DV, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 3
-  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF, C,TF,TF, C,TF,TF,TF, _,R], // 4
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, P, _, _, _, _, _, _,TF,TB,TB,TB,TB,TB,TB,TF,TF, _,R], // 5
-  [L, _, M, M, _, _, M, M, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF, C,TF,TF, C,TF,TF,TF, _,R], // 6
-  [L, _, D, D, _, _, D, D, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 7
-  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 8
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 1
+  [L, _, M, M, M, M, _, _,BK, _, _, _, _, _, _, _, _, _, _,DV, _,TF,WB,TF,TF,TF,TF,TF,WB,TF, _,R], // 2
+  [L, _, D, D, D, D, _, _, P, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 3
+  [L, _, C, C, C, C, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF, C,TF,TF, C,TF,TF,TF, _,R], // 4
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, P, _, _, _, _, _, _, _,TF,TB,TB,TB,TB,TB,TB,TF,TF, _,R], // 5
+  [L, _, M, M, M, M, _, _,VD, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF, C,TF,TF, C,TF,TF,TF, _,R], // 6
+  [L, _, D, D, D, D, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 7
+  [L, _, C, C, C, C, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 8
   [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,R], // 9
   [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 10
-  [L, _, M, M, _, _, M, M, _, P, _, _, _, _, _, _, _, _, _,DV, _,TF, S, S, _,TF,TF, _, S, S, _,R], // 11
-  [L, _, D, D, _, _, D, D, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TB,TF,TF,TB,TF,TF, _,R], // 12
-  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF, S, S, _,TF,TF, _, S, S, _,R], // 13
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 14
+  [L, _, M, M, M, M, _, _,BK, _, _, _, _, _, _, _, _, _, _,DV, _,TF, S, S, _,TF,TF, _, S, S, _,R], // 11
+  [L, _, D, D, D, D, _, _, _, _, _, _, _, _, _, _, _, _, _,DV, _,TF,TF,TF,TB,TF,TF,TB,TF,TF, _,R], // 12
+  [L, _, C, C, C, C, _, _, _, _, _, _, _, _, _, P, _, _, _,DV, _,TF, S, S, _,TF,TF, _, S, S, _,R], // 13
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF, _,R], // 14
   [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,RG,RG,RG,RG,RG,RG, _, _, _,R], // 15
   [L, _, _, _, _, _, _, _, _, _, P, _, _, VD,VD, _, _, _, _, _, _, _,RG, P, _,CT,CT,CT, _, _, _,R], // 16
   [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _,RG, _, _, _, CF, _, _, _, _,R], // 17
@@ -379,29 +379,40 @@ function drawTile(col, row) {
       break;
     }
     case T.DESK: {
-      // 책상 — 나무 질감 + 다리 + 서랍
-      shadow(x+2, y+4, S-4, S-6);
-      ctx.fillStyle = '#7d5030'; ctx.fillRect(x+2,y+4,S-4,S-8);
-      ctx.fillStyle = '#8b5c38'; ctx.fillRect(x+2,y+4,S-4,3); // 상판 하이라이트
-      ctx.fillStyle = '#6b4226'; ctx.fillRect(x+2,y+S-5,S-4,2); // 앞면
-      // 나무결
+      // 공유 책상 — 옆 타일이 같은 DESK면 이음매 없이 연결
+      const leftJoin = MAP[row]?.[col-1] === T.DESK;
+      const rightJoin = MAP[row]?.[col+1] === T.DESK;
+      const x1 = leftJoin ? x : x + 2;
+      const x2 = rightJoin ? x + S : x + S - 2;
+      const w = x2 - x1;
+      shadow(x1, y+4, w, S-6);
+      ctx.fillStyle = '#7d5030'; ctx.fillRect(x1, y+4, w, S-8);
+      ctx.fillStyle = '#8b5c38'; ctx.fillRect(x1, y+4, w, 3);
+      ctx.fillStyle = '#6b4226'; ctx.fillRect(x1, y+S-5, w, 2);
       ctx.fillStyle = 'rgba(0,0,0,0.06)';
-      ctx.fillRect(x+4,y+8,S-8,1); ctx.fillRect(x+4,y+14,S-8,1);
-      // 서랍 손잡이
-      ctx.fillStyle = '#a0a0a0'; ctx.fillRect(x+S/2-2,y+S-4,4,1);
-      // 다리
+      ctx.fillRect(x+4, y+8, S-8, 1); ctx.fillRect(x+4, y+14, S-8, 1);
+      // 서랍 손잡이 (각 자리마다 개별)
+      ctx.fillStyle = '#a0a0a0'; ctx.fillRect(x+S/2-2, y+S-4, 4, 1);
+      // 다리 (책상 그룹의 양 끝에만)
       ctx.fillStyle = '#5a3820';
-      ctx.fillRect(x+3,y+S-4,2,4); ctx.fillRect(x+S-5,y+S-4,2,4);
+      if (!leftJoin) ctx.fillRect(x+3, y+S-4, 2, 4);
+      if (!rightJoin) ctx.fillRect(x+S-5, y+S-4, 2, 4);
       break;
     }
     case T.MONITOR: {
-      // 책상 + 모니터
-      shadow(x+2, y+10, S-4, S-10);
-      ctx.fillStyle = '#7d5030'; ctx.fillRect(x+2,y+12,S-4,S-14);
-      ctx.fillStyle = '#8b5c38'; ctx.fillRect(x+2,y+12,S-4,2);
-      // 다리
+      // 공유 책상 윗면 (모니터 놓인 부분) — 옆 타일이 같은 MONITOR면 연결
+      const leftJoin = MAP[row]?.[col-1] === T.MONITOR;
+      const rightJoin = MAP[row]?.[col+1] === T.MONITOR;
+      const x1 = leftJoin ? x : x + 2;
+      const x2 = rightJoin ? x + S : x + S - 2;
+      const w = x2 - x1;
+      shadow(x1, y+10, w, S-10);
+      ctx.fillStyle = '#7d5030'; ctx.fillRect(x1, y+12, w, S-14);
+      ctx.fillStyle = '#8b5c38'; ctx.fillRect(x1, y+12, w, 2);
+      // 다리 (양 끝에만)
       ctx.fillStyle = '#5a3820';
-      ctx.fillRect(x+3,y+S-3,2,3); ctx.fillRect(x+S-5,y+S-3,2,3);
+      if (!leftJoin) ctx.fillRect(x+3, y+S-3, 2, 3);
+      if (!rightJoin) ctx.fillRect(x+S-5, y+S-3, 2, 3);
       // 모니터
       shadow(x+5, y+1, S-10, 15);
       ctx.fillStyle = '#1a1a2e'; ctx.fillRect(x+5,y+1,S-10,14);
@@ -635,7 +646,7 @@ function drawZoneLabels() {
 
   // 반투명 배경 + 텍스트
   const labels = [
-    { text: '업무 구역', x: 5*TILE, y: 16*TILE+16 },
+    { text: '업무 구역', x: 3.5*TILE, y: 16*TILE+16 },
     { text: '회의실', x: 25.5*TILE, y: 1.5*TILE },
     { text: '카페', x: 25.5*TILE, y: 10.5*TILE },
     { text: '라운지', x: 14.5*TILE, y: 1.5*TILE },
@@ -784,11 +795,11 @@ function pickAutoIdle() {
 // 좌석 관련
 const SEAT_POSITIONS = [
   { x: 2*32+2, y: 4*32-10 }, { x: 3*32+2, y: 4*32-10 },
-  { x: 6*32+2, y: 4*32-10 }, { x: 7*32+2, y: 4*32-10 },
+  { x: 4*32+2, y: 4*32-10 }, { x: 5*32+2, y: 4*32-10 },
   { x: 2*32+2, y: 8*32-10 }, { x: 3*32+2, y: 8*32-10 },
-  { x: 6*32+2, y: 8*32-10 }, { x: 7*32+2, y: 8*32-10 },
+  { x: 4*32+2, y: 8*32-10 }, { x: 5*32+2, y: 8*32-10 },
   { x: 2*32+2, y: 13*32-10 }, { x: 3*32+2, y: 13*32-10 },
-  { x: 6*32+2, y: 13*32-10 }, { x: 7*32+2, y: 13*32-10 },
+  { x: 4*32+2, y: 13*32-10 }, { x: 5*32+2, y: 13*32-10 },
 ];
 
 function findNearestSeat() {
