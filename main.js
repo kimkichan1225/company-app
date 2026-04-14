@@ -5,7 +5,7 @@ const https = require('https');
 const { execFile } = require('child_process');
 const { io: ioClient } = require('socket.io-client');
 
-const CURRENT_VERSION = '1.1.8';
+const CURRENT_VERSION = '1.1.9';
 const VERSION_URL = 'https://raw.githubusercontent.com/kimkichan1225/company-app/main/version.json';
 const SERVER_URL = 'https://web-production-3efa6.up.railway.app';
 
