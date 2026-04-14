@@ -215,35 +215,52 @@ async function checkForUpdate() {
 
     await downloadFile(remote.downloadUrl, zipPath);
 
-    // 업데이트 배치 스크립트 작성
+    // PowerShell 업데이트 스크립트 작성
+    // (cmd 배치는 한글 경로 + cp949/UTF-8 인코딩 문제가 반복되어 PowerShell로 대체)
     const appDir = path.dirname(app.getPath('exe'));
-    const batPath = path.join(tmpDir, 'fitcharacter_update.bat');
+    const ps1Path = path.join(tmpDir, 'fitcharacter_update.ps1');
     const exePath = app.getPath('exe');
 
-    const batContent = `@echo off
-chcp 65001 >nul
-echo Updating FitCharacter...
-timeout /t 2 /nobreak >nul
-rd /s /q "${extractDir}" 2>nul
-mkdir "${extractDir}"
-powershell -Command "Expand-Archive -Path '${zipPath}' -DestinationPath '${extractDir}' -Force"
-for /d %%i in ("${extractDir}\\*") do (
-  xcopy /s /e /y "%%i\\*" "${appDir}\\" >nul
-)
-del "${zipPath}" 2>nul
-rd /s /q "${extractDir}" 2>nul
-start "" "${exePath}"
-del "%~f0"
+    // PS1 단일따옴표는 리터럴 문자열 (이스케이프 불필요, 경로에 ' 없다고 가정)
+    const ps1Content = `
+$ErrorActionPreference = 'Stop'
+$zipPath    = '${zipPath}'
+$extractDir = '${extractDir}'
+$appDir     = '${appDir}'
+$exePath    = '${exePath}'
+
+try {
+  # 이전 Electron 프로세스가 완전히 종료되도록 대기
+  Start-Sleep -Seconds 3
+
+  if (Test-Path $extractDir) { Remove-Item -Path $extractDir -Recurse -Force }
+  New-Item -ItemType Directory -Path $extractDir -Force | Out-Null
+  Expand-Archive -Path $zipPath -DestinationPath $extractDir -Force
+
+  # ZIP 루트의 모든 파일/폴더를 설치 폴더에 덮어쓰기
+  Copy-Item -Path (Join-Path $extractDir '*') -Destination $appDir -Recurse -Force
+
+  Remove-Item -Path $zipPath -Force -ErrorAction SilentlyContinue
+  Remove-Item -Path $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+
+  Start-Process -FilePath $exePath
+} catch {
+  # 실패 시 로그 남기기 (다음 앱 실행에서 감지용)
+  $logPath = Join-Path $env:TEMP 'fitcharacter_update_error.log'
+  $_ | Out-String | Out-File -FilePath $logPath -Encoding UTF8
+}
 `;
 
-    // Windows cmd는 CRLF 줄바꿈이 필요 — LF로 저장하면 파싱 깨짐
-    fs.writeFileSync(batPath, batContent.replace(/\r?\n/g, '\r\n'), 'utf8');
+    // UTF-8 BOM 포함으로 저장 → PowerShell이 한글 경로를 정확히 읽음
+    fs.writeFileSync(ps1Path, '\uFEFF' + ps1Content, 'utf8');
 
     // 실패 감지용 마커 기록
     writePendingUpdate(remote.version, remote.downloadUrl);
 
-    // 배치 실행 후 앱 종료
-    execFile('cmd.exe', ['/c', 'start', '', '/min', batPath], { detached: true, stdio: 'ignore' });
+    // PowerShell 실행 후 앱 종료
+    execFile('powershell.exe',
+      ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', ps1Path],
+      { detached: true, stdio: 'ignore' });
     app.quit();
   } catch (err) {
     console.error('업데이트 확인 실패:', err.message);
@@ -356,6 +373,8 @@ function createTray() {
   tray = new Tray(icon);
 
   const contextMenu = Menu.buildFromTemplate([
+    { label: `FitCharacter v${CURRENT_VERSION}`, enabled: false },
+    { type: 'separator' },
     {
       label: '일하는 중',
       type: 'radio',
@@ -371,6 +390,10 @@ function createTray() {
     {
       label: '프로필 수정',
       click: () => openSetupForEdit(),
+    },
+    {
+      label: '업데이트 확인',
+      click: () => checkForUpdate(),
     },
     {
       label: '종료',
