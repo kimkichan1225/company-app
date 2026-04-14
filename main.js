@@ -157,6 +157,19 @@ function clearPendingUpdate() {
   try { if (fs.existsSync(pendingUpdatePath)) fs.unlinkSync(pendingUpdatePath); } catch (e) {}
 }
 
+// 시맨틱 버전 비교 (a > b: 1, a < b: -1, 같으면 0)
+function compareVersions(a, b) {
+  const pa = String(a).split('.').map(n => parseInt(n, 10) || 0);
+  const pb = String(b).split('.').map(n => parseInt(n, 10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const x = pa[i] || 0, y = pb[i] || 0;
+    if (x > y) return 1;
+    if (x < y) return -1;
+  }
+  return 0;
+}
+
 const RELEASES_PAGE = 'https://github.com/kimkichan1225/company-app/releases/latest';
 
 async function checkForUpdate() {
@@ -164,8 +177,8 @@ async function checkForUpdate() {
     // 이전 업데이트 시도가 실패했는지 먼저 확인
     const pending = readPendingUpdate();
     if (pending) {
-      if (pending.targetVersion === CURRENT_VERSION) {
-        // 업데이트 성공 — 마커 정리
+      // 현재 버전이 목표 이상이면 성공으로 간주 (수동 설치로 건너뛴 케이스 포함)
+      if (compareVersions(CURRENT_VERSION, pending.targetVersion) >= 0) {
         clearPendingUpdate();
       } else {
         // 버전이 올라가지 않았음 → 자동 업데이트 실패
@@ -490,7 +503,7 @@ function createTray() {
     },
   ]);
 
-  tray.setToolTip('Fit Character');
+  tray.setToolTip(`Fit Character v${CURRENT_VERSION}`);
   tray.setContextMenu(contextMenu);
 
   // 트레이 더블클릭으로 모드 전환
