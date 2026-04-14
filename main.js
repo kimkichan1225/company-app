@@ -436,15 +436,28 @@ try {
   }
 }
 
+// 모든 모니터를 합친 데스크탑 전체 영역 (작업표시줄 제외) 반환
+function getCombinedDesktopBounds() {
+  const displays = screen.getAllDisplays();
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const d of displays) {
+    const wa = d.workArea; // { x, y, width, height }
+    minX = Math.min(minX, wa.x);
+    minY = Math.min(minY, wa.y);
+    maxX = Math.max(maxX, wa.x + wa.width);
+    maxY = Math.max(maxY, wa.y + wa.height);
+  }
+  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+}
+
 function createWorkWindow() {
-  const display = screen.getPrimaryDisplay();
-  const { width, height } = display.workAreaSize;
+  const bounds = getCombinedDesktopBounds();
 
   workWin = new BrowserWindow({
     width: 140,
     height: 160,
-    x: Math.floor(width / 2),
-    y: height - 160,
+    x: Math.floor(bounds.x + bounds.width / 2),
+    y: bounds.y + bounds.height - 160,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -462,12 +475,9 @@ function createWorkWindow() {
   workWin.setIgnoreMouseEvents(false);
   workWin.setAlwaysOnTop(true, 'screen-saver');
 
-  // 화면 정보 전달 (업데이트 체크는 앱 시작 시에만 수행, 트레이 메뉴에서 수동 확인 가능)
+  // 화면 정보 전달 (전체 모니터 합친 영역)
   workWin.webContents.on('did-finish-load', () => {
-    workWin.webContents.send('screen-bounds', {
-      width: display.workAreaSize.width,
-      height: display.workAreaSize.height,
-    });
+    workWin.webContents.send('screen-bounds', getCombinedDesktopBounds());
   });
 
   workWin.on('closed', () => {

@@ -117,7 +117,7 @@
   };
 
   let spriteImg = null;
-  let screenBounds = { width: 1920, height: 1080 };
+  let screenBounds = { x: 0, y: 0, width: 1920, height: 1080 };
   let petX = 0, petY = 0;
 
   // 상태 머신
@@ -289,12 +289,14 @@
           const dir = (facingDir === 'left') ? -1 : 1;
           petX += dir * WALK_SPEED;
 
-          // 화면 경계 체크
-          if (petX <= 0) {
-            petX = 0;
+          // 화면 경계 체크 (전체 모니터 합친 영역)
+          const minX = screenBounds.x;
+          const maxX = screenBounds.x + screenBounds.width - 140;
+          if (petX <= minX) {
+            petX = minX;
             facingDir = 'right';
-          } else if (petX >= screenBounds.width - 140) {
-            petX = screenBounds.width - 140;
+          } else if (petX >= maxX) {
+            petX = maxX;
             facingDir = 'left';
           }
           window.electronAPI.moveWindow(petX, petY);
@@ -353,8 +355,8 @@
     if (isDragging) {
       isDragging = false;
       canvas.classList.remove('dragging');
-      // 바닥으로 떨어짐
-      petY = screenBounds.height - 160;
+      // 바닥으로 떨어짐 (현재 X 좌표가 속한 모니터의 바닥으로)
+      petY = screenBounds.y + screenBounds.height - 160;
       window.electronAPI.moveWindow(petX, petY);
       pickNewState();
     }
