@@ -12,7 +12,7 @@ const SERVER_URL = 'https://web-production-3efa6.up.railway.app';
 let workWin = null;   // 일하는 중 (데스크탑 펫)
 let restWin = null;   // 휴식 중 (소통 창)
 let tray = null;
-let currentMode = 'work';
+let currentMode = 'rest';
 
 // ── socket.io 클라이언트 (main process에서 유지) ──
 let clientSocket = null;
@@ -552,12 +552,12 @@ function createTray() {
     {
       label: '일하는 중',
       type: 'radio',
-      checked: true,
       click: () => switchMode('work'),
     },
     {
       label: '휴식 중',
       type: 'radio',
+      checked: true,
       click: () => switchMode('rest'),
     },
     { type: 'separator' },
@@ -735,13 +735,14 @@ ipcMain.handle('has-profile', async () => {
   return hasProfile();
 });
 
-// 셋업 완료 → Work 모드로
+// 셋업 완료 → Rest 모드로
 ipcMain.on('setup-done', () => {
   if (setupWin) {
     setupWin.close();
     setupWin = null;
   }
-  createWorkWindow();
+  currentMode = 'rest';
+  createRestWindow();
 });
 
 // 셋업 윈도우
@@ -790,9 +791,10 @@ app.whenReady().then(async () => {
   const updating = await checkForUpdate();
   if (updating) return;
 
-  // 3) 정상 실행
+  // 3) 정상 실행 (rest 모드로 진입)
   if (hasProfile()) {
-    createWorkWindow();
+    currentMode = 'rest';
+    createRestWindow();
   } else {
     createSetupWindow();
   }
