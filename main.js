@@ -780,9 +780,9 @@ function createSetupWindow() {
 
   setupWin = new BrowserWindow({
     width: 520,
-    height: 580,
+    height: 680,
     x: Math.floor((width - 520) / 2),
-    y: Math.floor((height - 580) / 2),
+    y: Math.floor((height - 680) / 2),
     frame: false,
     resizable: false,
     transparent: false,
