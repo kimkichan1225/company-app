@@ -130,6 +130,7 @@
           <button class="gender-btn" id="btnSlime" data-gender="slime">🟢 슬라임</button>
           <button class="gender-btn" id="btnCat2" data-gender="cat2">🐈 고양이2</button>
           <button class="gender-btn" id="btnRabbit" data-gender="rabbit">🐰 토끼</button>
+          <button class="gender-btn" id="btnNezuco" data-gender="nezuco">🎋 네즈코</button>
         </div>
       </div>
 
@@ -240,7 +241,8 @@
     const isSlime = gender === 'slime';
     const isCat2 = gender === 'cat2';
     const isRabbit = gender === 'rabbit';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit;
+    const isNezuco = gender === 'nezuco';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -338,6 +340,39 @@
           cx.translate((c+1)*fw, 3*fh);
           cx.scale(-1, 1);
           cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isNezuco) {
+        // 네즈코: 1:1 비율 유지 축소 + row 2 LEFT (col 0 ← col 2로 교체) + row 3 RIGHT = row 2 좌우반전
+        const scale = Math.min(64 / fw, 96 / fh);
+        const newFW = Math.round(fw * scale);
+        const newFH = Math.round(fh * scale);
+        const xOff = Math.round((64 - newFW) / 2);
+        const yOff = Math.round((96 - newFH) / 2);
+        const cv = document.createElement('canvas');
+        cv.width = 256; cv.height = 384;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        for (let r = 0; r < 2; r++) {
+          for (let c = 0; c < 4; c++) {
+            cx.drawImage(img, c*fw, r*fh, fw, fh, c*64 + xOff, r*96 + yOff, newFW, newFH);
+          }
+        }
+        // row 2 (LEFT): col 0은 원본 row 2 col 2로 교체
+        for (let c = 0; c < 4; c++) {
+          const srcCol = (c === 0) ? 2 : c;
+          cx.drawImage(img, srcCol*fw, 2*fh, fw, fh, c*64 + xOff, 2*96 + yOff, newFW, newFH);
+        }
+        // row 3 (RIGHT): row 2 보정본을 프레임별 좌우반전
+        for (let c = 0; c < 4; c++) {
+          const srcCol = (c === 0) ? 2 : c;
+          cx.save();
+          cx.translate(c*64 + xOff + newFW, 3*96 + yOff);
+          cx.scale(-1, 1);
+          cx.drawImage(img, srcCol*fw, 2*fh, fw, fh, 0, 0, newFW, newFH);
           cx.restore();
         }
         const fixed = new Image();

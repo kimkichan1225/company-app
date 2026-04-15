@@ -183,6 +183,7 @@
               <button class="modal-gender" data-g="slime" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">🟢 슬라임</button>
               <button class="modal-gender" data-g="cat2" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">🐈 고양이2</button>
               <button class="modal-gender" data-g="rabbit" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">🐰 토끼</button>
+              <button class="modal-gender" data-g="nezuco" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">🎋 네즈코</button>
             </div>
           </div>
           <div>
@@ -678,7 +679,7 @@ const ROW_MAP = { front: 0, back: 1, left: 2, right: 3 };
 const IDLE_FRAME = { 0: 0, 1: 0, 2: 0, 3: 1 };
 // 캐릭터별 idle 프레임 오버라이드 (col 0이 정지 포즈인 캐릭터들)
 function getIdleCol(row, gender) {
-  if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime' || gender === 'cat2' || gender === 'rabbit') return 0;
+  if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime' || gender === 'cat2' || gender === 'rabbit' || gender === 'nezuco') return 0;
   return IDLE_FRAME[row];
 }
 const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
@@ -695,8 +696,8 @@ const peers = new Map(), peerSprites = new Map();
 const bubbles = new Map();
 
 function createSpriteImage(svgText, colors, options = {}) {
-  const { isPikachu = false, isPsyduck = false, isCat = false, isSprigatito = false, isSlime = false, isCat2 = false, isRabbit = false } = options;
-  const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit;
+  const { isPikachu = false, isPsyduck = false, isCat = false, isSprigatito = false, isSlime = false, isCat2 = false, isRabbit = false, isNezuco = false } = options;
+  const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco;
   const isPng = svgText.startsWith('data:image/png');
   return new Promise((resolve) => {
     let svg = svgText;
@@ -790,6 +791,37 @@ function createSpriteImage(svgText, colors, options = {}) {
           cx.translate((c+1)*fw, 3*fh);
           cx.scale(-1, 1);
           cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => resolve(fixed);
+        fixed.src = cv.toDataURL();
+      } else if (isNezuco) {
+        // 네즈코: 1:1 비율 유지 축소 + row 2 LEFT (col 0 ← col 2 교체) + row 3 RIGHT = row 2 좌우반전
+        const scale = Math.min(64 / fw, 96 / fh);
+        const newFW = Math.round(fw * scale);
+        const newFH = Math.round(fh * scale);
+        const xOff = Math.round((64 - newFW) / 2);
+        const yOff = Math.round((96 - newFH) / 2);
+        const cv = document.createElement('canvas');
+        cv.width = 256; cv.height = 384;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        for (let r = 0; r < 2; r++) {
+          for (let c = 0; c < 4; c++) {
+            cx.drawImage(img, c*fw, r*fh, fw, fh, c*64 + xOff, r*96 + yOff, newFW, newFH);
+          }
+        }
+        for (let c = 0; c < 4; c++) {
+          const srcCol = (c === 0) ? 2 : c;
+          cx.drawImage(img, srcCol*fw, 2*fh, fw, fh, c*64 + xOff, 2*96 + yOff, newFW, newFH);
+        }
+        for (let c = 0; c < 4; c++) {
+          const srcCol = (c === 0) ? 2 : c;
+          cx.save();
+          cx.translate(c*64 + xOff + newFW, 3*96 + yOff);
+          cx.scale(-1, 1);
+          cx.drawImage(img, srcCol*fw, 2*fh, fw, fh, 0, 0, newFW, newFH);
           cx.restore();
         }
         const fixed = new Image();
@@ -1157,7 +1189,7 @@ async function connectServer() {
       peers.set(u.id, u);
       if (!peerSprites.has(u.id)) {
         const svg = svgByGender[u.gender || 'boy'] || originalSVG;
-        peerSprites.set(u.id, await createSpriteImage(svg, u.colors, { isPikachu: u.gender === 'pikachu', isPsyduck: u.gender === 'psyduck', isCat: u.gender === 'cat', isSprigatito: u.gender === 'sprigatito', isSlime: u.gender === 'slime', isCat2: u.gender === 'cat2', isRabbit: u.gender === 'rabbit' }));
+        peerSprites.set(u.id, await createSpriteImage(svg, u.colors, { isPikachu: u.gender === 'pikachu', isPsyduck: u.gender === 'psyduck', isCat: u.gender === 'cat', isSprigatito: u.gender === 'sprigatito', isSlime: u.gender === 'slime', isCat2: u.gender === 'cat2', isRabbit: u.gender === 'rabbit', isNezuco: u.gender === 'nezuco' }));
       }
     }
     updateOnlineCount();
@@ -1166,7 +1198,7 @@ async function connectServer() {
   window.electronAPI.onSocketEvent('user-joined', async (u) => {
     peers.set(u.id, u);
     const svg = svgByGender[u.gender || 'boy'] || originalSVG;
-    peerSprites.set(u.id, await createSpriteImage(svg, u.colors, { isPikachu: u.gender === 'pikachu', isPsyduck: u.gender === 'psyduck', isCat: u.gender === 'cat', isSprigatito: u.gender === 'sprigatito', isSlime: u.gender === 'slime', isCat2: u.gender === 'cat2', isRabbit: u.gender === 'rabbit' }));
+    peerSprites.set(u.id, await createSpriteImage(svg, u.colors, { isPikachu: u.gender === 'pikachu', isPsyduck: u.gender === 'psyduck', isCat: u.gender === 'cat', isSprigatito: u.gender === 'sprigatito', isSlime: u.gender === 'slime', isCat2: u.gender === 'cat2', isRabbit: u.gender === 'rabbit', isNezuco: u.gender === 'nezuco' }));
     addSystemMsg(`${u.nickname} 님이 입장했습니다`);
     updateOnlineCount();
   });
@@ -1322,8 +1354,9 @@ async function init() {
   svgByGender.slime = await window.electronAPI.readSVG('slime');
   svgByGender.cat2 = await window.electronAPI.readSVG('cat2');
   svgByGender.rabbit = await window.electronAPI.readSVG('rabbit');
+  svgByGender.nezuco = await window.electronAPI.readSVG('nezuco');
   originalSVG = svgByGender[myProfile.gender || 'boy'];
-  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors, { isPikachu: myProfile.gender === 'pikachu', isPsyduck: myProfile.gender === 'psyduck', isCat: myProfile.gender === 'cat', isSprigatito: myProfile.gender === 'sprigatito', isSlime: myProfile.gender === 'slime', isCat2: myProfile.gender === 'cat2', isRabbit: myProfile.gender === 'rabbit' });
+  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors, { isPikachu: myProfile.gender === 'pikachu', isPsyduck: myProfile.gender === 'psyduck', isCat: myProfile.gender === 'cat', isSprigatito: myProfile.gender === 'sprigatito', isSlime: myProfile.gender === 'slime', isCat2: myProfile.gender === 'cat2', isRabbit: myProfile.gender === 'rabbit', isNezuco: myProfile.gender === 'nezuco' });
 
   // work 모드에서 복귀한 경우 좌석에서 일어나는 애니메이션
   const seat = await window.electronAPI.getSavedSeat();
@@ -1401,10 +1434,10 @@ function openProfileModal() {
 
 async function updateModalSprite() {
   const svg = svgByGender[modalGender] || originalSVG;
-  modalSpriteImg = await createSpriteImage(svg, modalColors, { isPikachu: modalGender === 'pikachu', isPsyduck: modalGender === 'psyduck', isCat: modalGender === 'cat', isSprigatito: modalGender === 'sprigatito', isSlime: modalGender === 'slime', isCat2: modalGender === 'cat2', isRabbit: modalGender === 'rabbit' });
+  modalSpriteImg = await createSpriteImage(svg, modalColors, { isPikachu: modalGender === 'pikachu', isPsyduck: modalGender === 'psyduck', isCat: modalGender === 'cat', isSprigatito: modalGender === 'sprigatito', isSlime: modalGender === 'slime', isCat2: modalGender === 'cat2', isRabbit: modalGender === 'rabbit', isNezuco: modalGender === 'nezuco' });
   // 색상 커스터마이징 없는 캐릭터는 색상 섹션 비활성화
   const colorSection = document.querySelectorAll('.modal-color');
-  const isModalPokemon = ['pikachu','psyduck','cat','sprigatito','slime','cat2','rabbit'].includes(modalGender);
+  const isModalPokemon = ['pikachu','psyduck','cat','sprigatito','slime','cat2','rabbit','nezuco'].includes(modalGender);
   colorSection.forEach(el => { el.style.opacity = isModalPokemon ? '0.3' : '1'; });
   document.querySelectorAll('.modal-color input').forEach(inp => { inp.disabled = (modalGender === 'pikachu'); });
 }
@@ -1452,7 +1485,7 @@ document.getElementById('modalSave').addEventListener('click', async () => {
 
   // 내 스프라이트 갱신
   originalSVG = svgByGender[modalGender];
-  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors, { isPikachu: modalGender === 'pikachu', isPsyduck: modalGender === 'psyduck', isCat: modalGender === 'cat', isSprigatito: modalGender === 'sprigatito', isSlime: modalGender === 'slime', isCat2: modalGender === 'cat2', isRabbit: modalGender === 'rabbit' });
+  mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors, { isPikachu: modalGender === 'pikachu', isPsyduck: modalGender === 'psyduck', isCat: modalGender === 'cat', isSprigatito: modalGender === 'sprigatito', isSlime: modalGender === 'slime', isCat2: modalGender === 'cat2', isRabbit: modalGender === 'rabbit', isNezuco: modalGender === 'nezuco' });
 
   // 서버에 다시 알림
   if (socketConnected) {
