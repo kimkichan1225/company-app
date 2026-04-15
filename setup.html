@@ -294,14 +294,33 @@
         fixed.onload = () => { spriteImg = fixed; };
         fixed.src = cv.toDataURL();
       } else if (isSprigatito) {
-        // 스프리가토 스프라이트 교정:
-        // - row 2 (LEFT 원본) 그대로 유지
+        // 나오하 스프라이트 교정:
+        // - 흰 배경 투명화
+        // - row 2 col 3을 좌우 반전 (원본 3열 4번째가 잘못됨)
         // - row 3 (RIGHT) ← row 2를 각 프레임 개별 좌우 반전
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');
         cx.imageSmoothingEnabled = false;
         cx.drawImage(img, 0, 0);
+        // 1) 흰 배경 투명화
+        const imgData = cx.getImageData(0, 0, w, h);
+        const d = imgData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i] > 240 && d[i+1] > 240 && d[i+2] > 240) d[i+3] = 0;
+        }
+        cx.putImageData(imgData, 0, 0);
+        // 2) row 2 col 3 좌우 반전
+        const frameCv = document.createElement('canvas');
+        frameCv.width = fw; frameCv.height = fh;
+        const frameCx = frameCv.getContext('2d');
+        frameCx.imageSmoothingEnabled = false;
+        frameCx.save(); frameCx.translate(fw, 0); frameCx.scale(-1, 1);
+        frameCx.drawImage(cv, 3*fw, 2*fh, fw, fh, 0, 0, fw, fh);
+        frameCx.restore();
+        cx.clearRect(3*fw, 2*fh, fw, fh);
+        cx.drawImage(frameCv, 0, 0, fw, fh, 3*fw, 2*fh, fw, fh);
+        // 3) row 3 (RIGHT) ← row 2 각 프레임 개별 좌우 반전
         const tmp = document.createElement('canvas');
         tmp.width = 4*fw; tmp.height = fh;
         const tx = tmp.getContext('2d');
