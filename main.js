@@ -17,6 +17,7 @@ let currentMode = 'rest';
 // ── socket.io 클라이언트 (main process에서 유지) ──
 let clientSocket = null;
 let savedSeat = null; // work 모드로 전환할 때 앉은 좌석 정보 (rest 복귀 시 사용)
+let lastJoinData = null; // 마지막 join 데이터 (서버 재시작 후 자동 재연결 시 재전송용)
 
 function forwardSocketEvent(event, data) {
   for (const win of BrowserWindow.getAllWindows()) {
@@ -33,7 +34,17 @@ function getClientSocket() {
     autoConnect: false,
     reconnection: true,
   });
-  clientSocket.on('connect', () => forwardSocketEvent('connect', null));
+  clientSocket.on('connect', () => {
+    // 연결 시 join 재전송 (서버 재시작 후 auto-reconnect 대응)
+    if (lastJoinData) {
+      clientSocket.emit('join', lastJoinData);
+      // work 모드 좌석 복원
+      if (savedSeat) {
+        clientSocket.emit('mode-change', { mode: 'work', seatIndex: savedSeat.seatIndex });
+      }
+    }
+    forwardSocketEvent('connect', null);
+  });
   clientSocket.on('disconnect', () => forwardSocketEvent('disconnect', null));
   // 내 좌석 정보 캐싱 (work 모드 전환 시 서버 응답)
   clientSocket.on('user-mode-changed', (data) => {
@@ -616,6 +627,7 @@ ipcMain.on('switch-mode', (event, mode) => {
 
 // ── socket bridge IPC ──
 ipcMain.handle('socket:connect', async (_, joinData) => {
+  lastJoinData = joinData; // 재연결 대응용 캐시
   const s = getClientSocket();
   if (s.connected) {
     s.emit('join', joinData);
@@ -631,7 +643,7 @@ ipcMain.handle('socket:connect', async (_, joinData) => {
       if (settled) return;
       settled = true;
       cleanup();
-      s.emit('join', joinData);
+      // join은 글로벌 connect 핸들러에서 이미 emit됨
       resolve({ id: s.id, connected: true });
     };
     const onError = (err) => {
@@ -658,6 +670,7 @@ ipcMain.on('socket:disconnect', () => {
     clientSocket = null;
   }
   savedSeat = null;
+  lastJoinData = null;
 });
 
 ipcMain.handle('socket:get-id', async () => {
