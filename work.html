@@ -115,6 +115,12 @@
     [ROW_LEFT]:  0,  // 3행 1번째
     [ROW_RIGHT]: 1,  // 4행 2번째
   };
+  // 캐릭터별 idle 프레임 오버라이드 (loadSprite에서 profile에 따라 설정)
+  function overrideIdleFrame(gender) {
+    if (gender === 'sprigatito') {
+      IDLE_FRAME[ROW_RIGHT] = 0; // 스프리가토는 모든 방향 col 0이 정지 포즈
+    }
+  }
 
   let spriteImg = null;
   let screenBounds = { x: 0, y: 0, width: 1920, height: 1080 };
@@ -158,9 +164,12 @@
     const isPikachu = profile && profile.gender === 'pikachu';
     const isPsyduck = profile && profile.gender === 'psyduck';
     const isCat = profile && profile.gender === 'cat';
-    const isPokemon = isPikachu || isPsyduck || isCat;
-    // 포켓몬은 색상 커스터마이징 스킵
-    if (!isPokemon && profile && profile.colors) {
+    const isSprigatito = profile && profile.gender === 'sprigatito';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito;
+    const isPng = svgText.startsWith('data:image/png');
+    overrideIdleFrame(profile && profile.gender);
+    // 포켓몬/PNG는 색상 커스터마이징 스킵
+    if (!isPokemon && !isPng && profile && profile.colors) {
       for (const key of Object.keys(ORIG_COLORS)) {
         const orig = ORIG_COLORS[key];
         const custom = profile.colors[key];
@@ -169,8 +178,13 @@
         }
       }
     }
-    const blob = new Blob([svgText], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
+    let url;
+    if (isPng) {
+      url = svgText;
+    } else {
+      const blob = new Blob([svgText], { type: 'image/svg+xml' });
+      url = URL.createObjectURL(blob);
+    }
     const img = new Image();
     img.onload = () => {
       const w = img.width, h = img.height;
@@ -210,6 +224,31 @@
         tx.restore();
         cx.clearRect(0, 3*fh, fw, fh);
         cx.drawImage(tmp, 0, 0, fw, fh, 0, 3*fh, fw, fh);
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; startAnimation(); };
+        fixed.src = cv.toDataURL();
+      } else if (isSprigatito) {
+        // 스프리가토 스프라이트 교정:
+        // - row 2 (LEFT 원본) 그대로 유지
+        // - row 3 (RIGHT) ← row 2를 각 프레임 개별 좌우 반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const tmp = document.createElement('canvas');
+        tmp.width = 4*fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 3*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();

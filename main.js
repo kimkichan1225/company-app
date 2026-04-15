@@ -733,7 +733,13 @@ ipcMain.handle('read-svg', async (event, gender) => {
   else if (g === 'pikachu') fileName = 'pixelated-cartoon-pikachu.svg';
   else if (g === 'psyduck') fileName = 'pixelated-cartoon-psyduck.svg';
   else if (g === 'cat') fileName = 'pixelated-cartoon-cat.svg';
+  else if (g === 'sprigatito') fileName = 'pixelated-cartoon-sprigatito.png';
   else fileName = 'pixelated-cartoon-boy.svg';
+  // PNG 파일은 base64 data URL로 반환
+  if (fileName.endsWith('.png')) {
+    const buf = fs.readFileSync(path.join(__dirname, fileName));
+    return 'data:image/png;base64,' + buf.toString('base64');
+  }
   return fs.readFileSync(path.join(__dirname, fileName), 'utf-8');
 });
 
