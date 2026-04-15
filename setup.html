@@ -132,6 +132,7 @@
           <button class="gender-btn" id="btnRabbit" data-gender="rabbit">🐰 토끼</button>
           <button class="gender-btn" id="btnNezuco" data-gender="nezuco">🎋 네즈코</button>
           <button class="gender-btn" id="btnCalcifer" data-gender="calcifer">🔥 캘시퍼</button>
+          <button class="gender-btn" id="btnPantom" data-gender="pantom">👻 팬텀</button>
         </div>
       </div>
 
@@ -244,7 +245,8 @@
     const isRabbit = gender === 'rabbit';
     const isNezuco = gender === 'nezuco';
     const isCalcifer = gender === 'calcifer';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer;
+    const isPantom = gender === 'pantom';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -343,6 +345,30 @@
           cx.scale(-1, 1);
           cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
           cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isPantom) {
+        // 팬텀: 표준 256x384, 특정 프레임만 좌우반전 (row 2 col 1/3, row 3 col 0/2)
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const flips = [[2,1],[2,3],[3,0],[3,2]];
+        for (const [r, c] of flips) {
+          const frameCv = document.createElement('canvas');
+          frameCv.width = fw; frameCv.height = fh;
+          const frameCx = frameCv.getContext('2d');
+          frameCx.imageSmoothingEnabled = false;
+          frameCx.save();
+          frameCx.translate(fw, 0);
+          frameCx.scale(-1, 1);
+          frameCx.drawImage(cv, c*fw, r*fh, fw, fh, 0, 0, fw, fh);
+          frameCx.restore();
+          cx.clearRect(c*fw, r*fh, fw, fh);
+          cx.drawImage(frameCv, 0, 0, fw, fh, c*fw, r*fh, fw, fh);
         }
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; };
