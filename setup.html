@@ -131,6 +131,7 @@
           <button class="gender-btn" id="btnCat2" data-gender="cat2">🐈 고양이2</button>
           <button class="gender-btn" id="btnRabbit" data-gender="rabbit">🐰 토끼</button>
           <button class="gender-btn" id="btnNezuco" data-gender="nezuco">🎋 네즈코</button>
+          <button class="gender-btn" id="btnCalcifer" data-gender="calcifer">🔥 캘시퍼</button>
         </div>
       </div>
 
@@ -242,7 +243,8 @@
     const isCat2 = gender === 'cat2';
     const isRabbit = gender === 'rabbit';
     const isNezuco = gender === 'nezuco';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco;
+    const isCalcifer = gender === 'calcifer';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -409,8 +411,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; };
         fixed.src = cv.toDataURL();
-      } else if (isSlime) {
-        // 슬라임 스프라이트: 네이티브 프레임을 비율 유지하며 64x96 슬롯에 축소 + 중앙 배치
+      } else if (isSlime || isCalcifer) {
+        // 네이티브 프레임을 비율 유지하며 64x96 슬롯에 축소 + 중앙 배치 (슬라임/캘시퍼 공통)
         const scale = Math.min(64 / fw, 96 / fh);
         const newFW = Math.round(fw * scale);
         const newFH = Math.round(fh * scale);
