@@ -673,9 +673,9 @@ function drawMap() {
 const FRAME_W = 64, FRAME_H = 96, CHAR_W = 28, CHAR_H = 42, COLS = 4;
 const ROW_MAP = { front: 0, back: 1, left: 2, right: 3 };
 const IDLE_FRAME = { 0: 0, 1: 0, 2: 0, 3: 1 };
-// 캐릭터별 idle 프레임 오버라이드 (스프리가토는 모든 방향 col 0)
+// 캐릭터별 idle 프레임 오버라이드 (스프리가토/고양이는 모든 방향 col 0)
 function getIdleCol(row, gender) {
-  if (gender === 'sprigatito') return 0;
+  if (gender === 'sprigatito' || gender === 'cat') return 0;
   return IDLE_FRAME[row];
 }
 const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };

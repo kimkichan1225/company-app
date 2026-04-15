@@ -117,8 +117,11 @@
   };
   // 캐릭터별 idle 프레임 오버라이드 (loadSprite에서 profile에 따라 설정)
   function overrideIdleFrame(gender) {
-    if (gender === 'sprigatito') {
-      IDLE_FRAME[ROW_RIGHT] = 0; // 스프리가토는 모든 방향 col 0이 정지 포즈
+    // col 0 이 정지 포즈인 캐릭터는 RIGHT도 col 0 사용
+    if (gender === 'sprigatito' || gender === 'cat') {
+      IDLE_FRAME[ROW_RIGHT] = 0;
+    } else {
+      IDLE_FRAME[ROW_RIGHT] = 1;
     }
   }
 
