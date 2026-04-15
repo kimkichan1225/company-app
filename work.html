@@ -156,8 +156,10 @@
     let svgText = await window.electronAPI.readSVG();
     const profile = await window.electronAPI.loadProfile();
     const isPikachu = profile && profile.gender === 'pikachu';
-    // 피카츄는 색상 커스터마이징 스킵
-    if (!isPikachu && profile && profile.colors) {
+    const isPsyduck = profile && profile.gender === 'psyduck';
+    const isPokemon = isPikachu || isPsyduck;
+    // 포켓몬은 색상 커스터마이징 스킵
+    if (!isPokemon && profile && profile.colors) {
       for (const key of Object.keys(ORIG_COLORS)) {
         const orig = ORIG_COLORS[key];
         const custom = profile.colors[key];
@@ -170,31 +172,50 @@
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      if (!isPikachu) {
-        spriteImg = img;
-        startAnimation();
-        return;
-      }
-      // 피카츄 스프라이트 교정: row 2 col 1,2,3 ↔ row 3 col 0,1,2
       const w = img.width, h = img.height;
       const fw = w / 4, fh = h / 4;
-      const cv = document.createElement('canvas');
-      cv.width = w; cv.height = h;
-      const cx = cv.getContext('2d');
-      cx.imageSmoothingEnabled = false;
-      cx.drawImage(img, 0, 0);
-      const tmp = document.createElement('canvas');
-      tmp.width = fw * 3; tmp.height = fh;
-      const tx = tmp.getContext('2d');
-      tx.imageSmoothingEnabled = false;
-      tx.drawImage(cv, 1*fw, 2*fh, 3*fw, fh, 0, 0, 3*fw, fh);
-      cx.clearRect(1*fw, 2*fh, 3*fw, fh);
-      cx.drawImage(cv, 0, 3*fh, 3*fw, fh, 1*fw, 2*fh, 3*fw, fh);
-      cx.clearRect(0, 3*fh, 3*fw, fh);
-      cx.drawImage(tmp, 0, 0, 3*fw, fh, 0, 3*fh, 3*fw, fh);
-      const fixed = new Image();
-      fixed.onload = () => { spriteImg = fixed; startAnimation(); };
-      fixed.src = cv.toDataURL();
+      if (isPikachu) {
+        // 피카츄 스프라이트 교정: row 2 col 1,2,3 ↔ row 3 col 0,1,2
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const tmp = document.createElement('canvas');
+        tmp.width = fw * 3; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 1*fw, 2*fh, 3*fw, fh, 0, 0, 3*fw, fh);
+        cx.clearRect(1*fw, 2*fh, 3*fw, fh);
+        cx.drawImage(cv, 0, 3*fh, 3*fw, fh, 1*fw, 2*fh, 3*fw, fh);
+        cx.clearRect(0, 3*fh, 3*fw, fh);
+        cx.drawImage(tmp, 0, 0, 3*fw, fh, 0, 3*fh, 3*fw, fh);
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; startAnimation(); };
+        fixed.src = cv.toDataURL();
+      } else if (isPsyduck) {
+        // 고라파덕 스프라이트 교정: row 3 col 0 좌우 반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const tmp = document.createElement('canvas');
+        tmp.width = fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.save(); tx.translate(fw, 0); tx.scale(-1, 1);
+        tx.drawImage(cv, 0, 3*fh, fw, fh, 0, 0, fw, fh);
+        tx.restore();
+        cx.clearRect(0, 3*fh, fw, fh);
+        cx.drawImage(tmp, 0, 0, fw, fh, 0, 3*fh, fw, fh);
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; startAnimation(); };
+        fixed.src = cv.toDataURL();
+      } else {
+        spriteImg = img;
+        startAnimation();
+      }
     };
     img.src = url;
   }

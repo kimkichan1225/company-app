@@ -124,6 +124,7 @@
           <button class="gender-btn active" id="btnBoy" data-gender="boy">👦 남자</button>
           <button class="gender-btn" id="btnGirl" data-gender="girl">👧 여자</button>
           <button class="gender-btn" id="btnPikachu" data-gender="pikachu">⚡ 피카츄</button>
+          <button class="gender-btn" id="btnPsyduck" data-gender="psyduck">🦆 고라파덕</button>
         </div>
       </div>
 
@@ -228,9 +229,11 @@
 
   function updateSprite() {
     const isPikachu = gender === 'pikachu';
+    const isPsyduck = gender === 'psyduck';
+    const isPokemon = isPikachu || isPsyduck;
     let svg = originalSVG;
-    // 피카츄는 색상 커스터마이징 스킵
-    if (!isPikachu) {
+    // 포켓몬은 색상 커스터마이징 스킵
+    if (!isPokemon) {
       for (const key of Object.keys(ORIG)) {
         if (colors[key] !== ORIG[key])
           svg = svg.replaceAll('fill="' + ORIG[key] + '"', 'fill="' + colors[key] + '"');
@@ -240,33 +243,55 @@
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.onload = () => {
-      if (!isPikachu) { spriteImg = img; return; }
-      // 피카츄 스프라이트 교정 (row 2 col 1,2,3 ↔ row 3 col 0,1,2)
       const w = img.width, h = img.height;
       const fw = w / 4, fh = h / 4;
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      const cctx = canvas.getContext('2d');
-      cctx.imageSmoothingEnabled = false;
-      cctx.drawImage(img, 0, 0);
-      const tmp = document.createElement('canvas');
-      tmp.width = fw * 3; tmp.height = fh;
-      const tctx = tmp.getContext('2d');
-      tctx.imageSmoothingEnabled = false;
-      tctx.drawImage(canvas, 1*fw, 2*fh, 3*fw, fh, 0, 0, 3*fw, fh);
-      cctx.clearRect(1*fw, 2*fh, 3*fw, fh);
-      cctx.drawImage(canvas, 0, 3*fh, 3*fw, fh, 1*fw, 2*fh, 3*fw, fh);
-      cctx.clearRect(0, 3*fh, 3*fw, fh);
-      cctx.drawImage(tmp, 0, 0, 3*fw, fh, 0, 3*fh, 3*fw, fh);
-      const fixed = new Image();
-      fixed.onload = () => { spriteImg = fixed; };
-      fixed.src = canvas.toDataURL();
+      if (isPikachu) {
+        // 피카츄 스프라이트 교정 (row 2 col 1,2,3 ↔ row 3 col 0,1,2)
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const tmp = document.createElement('canvas');
+        tmp.width = fw * 3; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 1*fw, 2*fh, 3*fw, fh, 0, 0, 3*fw, fh);
+        cx.clearRect(1*fw, 2*fh, 3*fw, fh);
+        cx.drawImage(cv, 0, 3*fh, 3*fw, fh, 1*fw, 2*fh, 3*fw, fh);
+        cx.clearRect(0, 3*fh, 3*fw, fh);
+        cx.drawImage(tmp, 0, 0, 3*fw, fh, 0, 3*fh, 3*fw, fh);
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isPsyduck) {
+        // 고라파덕 스프라이트 교정: row 3 col 0 좌우 반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const tmp = document.createElement('canvas');
+        tmp.width = fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.save(); tx.translate(fw, 0); tx.scale(-1, 1);
+        tx.drawImage(cv, 0, 3*fh, fw, fh, 0, 0, fw, fh);
+        tx.restore();
+        cx.clearRect(0, 3*fh, fw, fh);
+        cx.drawImage(tmp, 0, 0, fw, fh, 0, 3*fh, fw, fh);
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else {
+        spriteImg = img;
+      }
     };
     img.src = url;
-    // 색상 입력 섹션 활성/비활성 토글
+    // 색상 입력 섹션 활성/비활성 토글 (포켓몬은 비활성)
     for (const [key, cfg] of Object.entries(COLOR_INPUTS)) {
-      cfg.input.disabled = isPikachu;
-      cfg.input.style.opacity = isPikachu ? '0.3' : '1';
+      cfg.input.disabled = isPokemon;
+      cfg.input.style.opacity = isPokemon ? '0.3' : '1';
     }
   }
 
