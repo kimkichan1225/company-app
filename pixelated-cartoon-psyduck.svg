@@ -1,8 +1,8 @@
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 width="256" height="384" viewBox="0 0 843 1264" enable-background="new 0 0 843 1264" xml:space="preserve">
-<path fill="#FDFDFD" opacity="1.000000" stroke="none" 
+<path fill="#FDFDFD" opacity="0" stroke="none"
 	d="
-M0.999999,778.000000 
+M0.999999,778.000000
 	C1.000000,519.067627 1.000000,260.135254 1.000000,1.000000 
 	C281.359131,1.000000 561.718323,1.000000 842.648071,1.218623 
 	C843.414307,1.714762 843.674744,1.902347 844.000000,2.000000 
