@@ -157,7 +157,8 @@
     const profile = await window.electronAPI.loadProfile();
     const isPikachu = profile && profile.gender === 'pikachu';
     const isPsyduck = profile && profile.gender === 'psyduck';
-    const isPokemon = isPikachu || isPsyduck;
+    const isCat = profile && profile.gender === 'cat';
+    const isPokemon = isPikachu || isPsyduck || isCat;
     // 포켓몬은 색상 커스터마이징 스킵
     if (!isPokemon && profile && profile.colors) {
       for (const key of Object.keys(ORIG_COLORS)) {
@@ -209,6 +210,33 @@
         tx.restore();
         cx.clearRect(0, 3*fh, fw, fh);
         cx.drawImage(tmp, 0, 0, fw, fh, 0, 3*fh, fw, fh);
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; startAnimation(); };
+        fixed.src = cv.toDataURL();
+      } else if (isCat) {
+        // 고양이 스프라이트 교정:
+        // - row 2 원본(오른쪽 애니메이션) → row 3 (RIGHT) 그대로 복사
+        // - row 2 (LEFT) 는 각 프레임을 개별적으로 좌우 반전 (순서 유지)
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const tmp = document.createElement('canvas');
+        tmp.width = 4*fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        cx.drawImage(tmp, 0, 0, 4*fw, fh, 0, 3*fh, 4*fw, fh);
+        cx.clearRect(0, 2*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 2*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();

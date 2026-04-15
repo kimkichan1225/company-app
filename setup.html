@@ -72,11 +72,11 @@
   .error-msg { font-size: 11px; color: #e74c3c; height: 14px; }
 
   /* 성별 선택 */
-  .gender-selector { display: flex; gap: 8px; }
+  .gender-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .gender-btn {
-    flex: 1; padding: 8px; border: 2px solid #333; border-radius: 8px;
-    background: #16213e; color: #aaa; font-size: 12px; cursor: pointer;
-    text-align: center; transition: all 0.2s;
+    padding: 8px 4px; border: 2px solid #333; border-radius: 8px;
+    background: #16213e; color: #aaa; font-size: 11px; cursor: pointer;
+    text-align: center; transition: all 0.2s; white-space: nowrap;
   }
   .gender-btn:hover { border-color: #3498db; color: #ecf0f1; }
   .gender-btn.active { border-color: #3498db; background: #1a3a6e; color: white; }
@@ -125,6 +125,7 @@
           <button class="gender-btn" id="btnGirl" data-gender="girl">👧 여자</button>
           <button class="gender-btn" id="btnPikachu" data-gender="pikachu">⚡ 피카츄</button>
           <button class="gender-btn" id="btnPsyduck" data-gender="psyduck">🦆 고라파덕</button>
+          <button class="gender-btn" id="btnCat" data-gender="cat">🐱 고양이</button>
         </div>
       </div>
 
@@ -230,7 +231,8 @@
   function updateSprite() {
     const isPikachu = gender === 'pikachu';
     const isPsyduck = gender === 'psyduck';
-    const isPokemon = isPikachu || isPsyduck;
+    const isCat = gender === 'cat';
+    const isPokemon = isPikachu || isPsyduck || isCat;
     let svg = originalSVG;
     // 포켓몬은 색상 커스터마이징 스킵
     if (!isPokemon) {
@@ -280,6 +282,36 @@
         tx.restore();
         cx.clearRect(0, 3*fh, fw, fh);
         cx.drawImage(tmp, 0, 0, fw, fh, 0, 3*fh, fw, fh);
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isCat) {
+        // 고양이 스프라이트 교정:
+        // - row 2 원본(오른쪽 애니메이션) → row 3 (RIGHT) 그대로 복사
+        // - row 2 (LEFT) 는 각 프레임을 개별적으로 좌우 반전 (순서 유지)
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        // row 2 백업
+        const tmp = document.createElement('canvas');
+        tmp.width = 4*fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        // row 3 (RIGHT) ← 백업
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        cx.drawImage(tmp, 0, 0, 4*fw, fh, 0, 3*fh, 4*fw, fh);
+        // row 2 (LEFT) ← 각 프레임 개별 좌우 반전
+        cx.clearRect(0, 2*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 2*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; };
         fixed.src = cv.toDataURL();
