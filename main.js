@@ -510,6 +510,7 @@ function createRestWindow() {
 
   restWin.on('closed', () => {
     restWin = null;
+    if (app.isQuitting) return;
     // 휴식 창 닫으면 일하기 모드로 복귀
     if (currentMode === 'rest') {
       currentMode = 'work';
@@ -770,6 +771,7 @@ function createSetupWindow() {
 
   setupWin.on('closed', () => {
     setupWin = null;
+    if (app.isQuitting) return;
     if (!hasProfile()) {
       // 첫 셋업 안 하고 닫으면 앱 종료
       app.quit();
