@@ -334,8 +334,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
-      } else if (isSlime || isCalcifer) {
-        // 네이티브 프레임을 비율 유지하며 64x96 슬롯에 축소 + 중앙 배치 (슬라임/캘시퍼 공통)
+      } else if (isSlime) {
+        // 슬라임 스프라이트: 네이티브 프레임을 비율 유지하며 64x96 슬롯에 축소 + 중앙 배치
         const scale = Math.min(64 / fw, 96 / fh);
         const newFW = Math.round(fw * scale);
         const newFH = Math.round(fh * scale);
