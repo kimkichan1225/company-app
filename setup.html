@@ -128,6 +128,7 @@
           <button class="gender-btn" id="btnCat" data-gender="cat">🐱 고양이</button>
           <button class="gender-btn" id="btnSprigatito" data-gender="sprigatito">🌱 나오하</button>
           <button class="gender-btn" id="btnSlime" data-gender="slime">🟢 슬라임</button>
+          <button class="gender-btn" id="btnCat2" data-gender="cat2">🐈 고양이2</button>
         </div>
       </div>
 
@@ -236,7 +237,8 @@
     const isCat = gender === 'cat';
     const isSprigatito = gender === 'sprigatito';
     const isSlime = gender === 'slime';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime;
+    const isCat2 = gender === 'cat2';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -295,8 +297,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; };
         fixed.src = cv.toDataURL();
-      } else if (isSprigatito) {
-        // 나오하 스프라이트 교정:
+      } else if (isSprigatito || isCat2) {
+        // 나오하/고양이2 공통 스프라이트 교정:
         // - 흰 배경 투명화
         // - row 2 col 3을 좌우 반전 (원본 3열 4번째가 잘못됨)
         // - row 3 (RIGHT) ← row 2를 각 프레임 개별 좌우 반전

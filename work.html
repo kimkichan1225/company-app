@@ -118,7 +118,7 @@
   // 캐릭터별 idle 프레임 오버라이드 (loadSprite에서 profile에 따라 설정)
   function overrideIdleFrame(gender) {
     // col 0 이 정지 포즈인 캐릭터는 RIGHT도 col 0 사용
-    if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime') {
+    if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime' || gender === 'cat2') {
       IDLE_FRAME[ROW_RIGHT] = 0;
     } else {
       IDLE_FRAME[ROW_RIGHT] = 1;
@@ -169,7 +169,8 @@
     const isCat = profile && profile.gender === 'cat';
     const isSprigatito = profile && profile.gender === 'sprigatito';
     const isSlime = profile && profile.gender === 'slime';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime;
+    const isCat2 = profile && profile.gender === 'cat2';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2;
     const isPng = svgText.startsWith('data:image/png');
     overrideIdleFrame(profile && profile.gender);
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -231,8 +232,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
-      } else if (isSprigatito) {
-        // 나오하 스프라이트 교정: 흰 배경 투명화 + row 2 col 3 좌우 반전 + row 3 (RIGHT) 생성
+      } else if (isSprigatito || isCat2) {
+        // 나오하/고양이2 공통: 흰 배경 투명화 + row 2 col 3 좌우 반전 + row 3 (RIGHT) 생성
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');
