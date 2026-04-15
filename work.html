@@ -272,7 +272,8 @@
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
       } else if (isRabbit) {
-        // 토끼: 1:1 비율 유지 축소 + row 2(RIGHT) → row 3, row 2는 좌우반전, 흰 배경 투명화
+        // 토끼: 1:1 비율 유지 축소 + row 2(RIGHT) → row 3, row 2는 좌우반전
+        // (배경은 원본 PNG에서 이미 투명 처리됨)
         const scale = Math.min(64 / fw, 96 / fh);
         const newFW = Math.round(fw * scale);
         const newFH = Math.round(fh * scale);
@@ -297,12 +298,6 @@
           cx.drawImage(img, c*fw, 2*fh, fw, fh, 0, 0, newFW, newFH);
           cx.restore();
         }
-        const imgData = cx.getImageData(0, 0, 256, 384);
-        const d = imgData.data;
-        for (let i = 0; i < d.length; i += 4) {
-          if (d[i] > 240 && d[i+1] > 240 && d[i+2] > 240) d[i+3] = 0;
-        }
-        cx.putImageData(imgData, 0, 0);
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
