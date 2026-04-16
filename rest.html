@@ -58,26 +58,98 @@
     border-left: 1px solid #333;
   }
 
-  /* 상태 선택 */
-  .status-bar {
-    padding: 8px 10px;
+  /* 점심 메뉴 투표 */
+  .lunch-panel {
+    padding: 10px 10px 8px;
     border-bottom: 1px solid #333;
     display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    gap: 8px;
   }
-  .status-btn {
-    padding: 4px 8px;
+  .lunch-header {
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .lunch-header .countdown { font-size: 10px; opacity: 0.6; font-weight: 400; }
+
+  .menu-input-wrap { display: flex; gap: 4px; }
+  .menu-input {
+    flex: 1;
+    background: #16213e;
     border: 1px solid #333;
-    border-radius: 12px;
-    background: transparent;
-    color: #aaa;
-    font-size: 10px;
-    cursor: pointer;
-    white-space: nowrap;
+    border-radius: 6px;
+    padding: 5px 8px;
+    color: #ecf0f1;
+    font-size: 11px;
+    outline: none;
+    min-width: 0;
   }
-  .status-btn:hover { border-color: #3498db; color: #ecf0f1; }
-  .status-btn.active { background: #3498db; border-color: #3498db; color: white; }
+  .menu-input:focus { border-color: #f39c12; }
+  .menu-input::placeholder { color: #555; }
+  .menu-btn {
+    background: #f39c12; border: none; border-radius: 6px; color: white;
+    padding: 5px 10px; cursor: pointer; font-size: 11px; font-weight: 600;
+    flex-shrink: 0;
+  }
+  .menu-btn:hover { background: #e67e22; }
+  .menu-btn.cancel { background: #555; }
+  .menu-btn.cancel:hover { background: #666; }
+
+  .menu-mine-label {
+    font-size: 10px;
+    opacity: 0.7;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(243,156,18,0.1);
+    padding: 5px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(243,156,18,0.3);
+  }
+  .menu-mine-label .n { font-weight: 600; color: #f39c12; opacity: 1; font-size: 11px; }
+
+  .menu-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .menu-list::-webkit-scrollbar { width: 3px; }
+  .menu-list::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+
+  .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    background: #16213e;
+    border: 1px solid #333;
+    border-radius: 6px;
+    font-size: 11px;
+    gap: 6px;
+  }
+  .menu-item.voted {
+    border-color: #27ae60;
+    background: rgba(39,174,96,0.15);
+  }
+  .menu-item.empty {
+    opacity: 0.4;
+    color: #666;
+    justify-content: center;
+  }
+  .menu-item .name { flex: 1; font-weight: 600; color: #ecf0f1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .menu-item .count { color: #f39c12; font-weight: 700; font-size: 10px; white-space: nowrap; }
+  .menu-item .vote-btn {
+    background: #27ae60; border: none; border-radius: 4px; color: white;
+    padding: 3px 8px; cursor: pointer; font-size: 10px; flex-shrink: 0;
+  }
+  .menu-item .vote-btn:hover { background: #2ecc71; }
+  .menu-item .vote-btn.voted { background: #e74c3c; }
+  .menu-item .vote-btn.voted:hover { background: #c0392b; }
 
   /* 채팅 */
   .chat-header { padding: 8px 14px; font-size: 13px; font-weight: 600; border-bottom: 1px solid #333; }
@@ -192,6 +264,10 @@
             <div style="font-size:11px;opacity:0.7;margin-bottom:3px;">닉네임</div>
             <input type="text" id="modalNickname" maxlength="12" style="width:100%;background:#16213e;border:2px solid #0f3460;border-radius:6px;padding:5px 10px;color:#ecf0f1;font-size:12px;outline:none;">
           </div>
+          <div>
+            <div style="font-size:11px;opacity:0.7;margin-bottom:3px;">실명 <span style="font-weight:400;opacity:0.5;">(점심 투표 결과에만 사용)</span></div>
+            <input type="text" id="modalRealName" maxlength="10" style="width:100%;background:#16213e;border:2px solid #0f3460;border-radius:6px;padding:5px 10px;color:#ecf0f1;font-size:12px;outline:none;">
+          </div>
           <div style="display:flex;flex-direction:column;gap:4px;">
             <div class="modal-color"><span style="font-size:11px;width:35px;display:inline-block;">피부</span><input type="color" data-key="skin" value="#fee7d5" style="width:28px;height:22px;border:1px solid #444;border-radius:4px;cursor:pointer;background:none;"></div>
             <div class="modal-color"><span style="font-size:11px;width:35px;display:inline-block;">머리</span><input type="color" data-key="hair" value="#bb7750" style="width:28px;height:22px;border:1px solid #444;border-radius:4px;cursor:pointer;background:none;"></div>
@@ -209,12 +285,21 @@
   </div>
 
   <div class="side-panel">
-    <!-- 상태 선택 -->
-    <div class="status-bar">
-      <button class="status-btn active" data-status="휴식 중">☕ 휴식 중</button>
-      <button class="status-btn" data-status="회의 중">📋 회의 중</button>
-      <button class="status-btn" data-status="점심시간">🍚 점심시간</button>
-      <button class="status-btn" data-status="자리비움">🚶 자리비움</button>
+    <!-- 점심 메뉴 투표 -->
+    <div class="lunch-panel">
+      <div class="lunch-header">
+        <span>🍚 점심 메뉴 투표</span>
+        <span class="countdown" id="lunchCountdown"></span>
+      </div>
+      <div id="myMenuArea">
+        <div class="menu-input-wrap" id="menuInputWrap">
+          <input type="text" class="menu-input" id="menuInput" placeholder="내 메뉴 입력 (최대 10자)" maxlength="10" />
+          <button class="menu-btn" id="menuRegister">등록</button>
+        </div>
+      </div>
+      <div class="menu-list" id="menuList">
+        <!-- 동적 생성 -->
+      </div>
     </div>
 
     <div class="chat-header">채팅</div>
@@ -243,69 +328,83 @@ const T = {
   FLOOR: 0, WALL_TOP: 1, WALL_LEFT: 2, DESK: 3, CHAIR: 4, MONITOR: 5,
   SOFA: 6, TABLE: 7, BOOKSHELF: 8, PLANT: 9, COFFEE: 10, RUG: 11,
   WALL_RIGHT: 12, WALL_BOT: 13, WHITEBOARD: 15,
-  TILE_FLOOR: 16,   // 타일 바닥 (회의실/카페)
+  TILE_FLOOR: 16,   // 타일 바닥 (음식점 앞 줄서기 영역)
   VENDING: 17,       // 자판기
   COUNTER: 18,       // 카운터
   DIVIDER: 19,       // 칸막이
+  // ── 음식점 ──
+  SHOP_ROOF: 20,    // 지붕 (음식점 top)
+  SHOP_SIGN: 21,    // 간판 (메뉴명 overlay)
+  SHOP_WALL: 22,    // 음식점 벽
 };
 
 const SOLID = new Set([T.WALL_TOP, T.WALL_LEFT, T.WALL_RIGHT, T.WALL_BOT,
   T.DESK, T.MONITOR, T.SOFA, T.TABLE, T.BOOKSHELF, T.COFFEE,
-  T.WHITEBOARD, T.VENDING, T.COUNTER, T.DIVIDER]);
+  T.WHITEBOARD, T.VENDING, T.COUNTER, T.DIVIDER,
+  T.SHOP_ROOF, T.SHOP_SIGN, T.SHOP_WALL]);
 
 // 맵 레이아웃 (28x18)
-// 좌측: 업무 구역 (cols 1-8) | 중앙: 라운지 (cols 9-13) | 우측 상: 회의실 | 우측 하: 카페
+// 좌측: 업무 구역 (cols 1-8) | 중앙: 라운지 (cols 9-13) | 우측: 음식점 6개 + 줄서기 영역
 const _ = T.FLOOR, W = T.WALL_TOP, L = T.WALL_LEFT, R = T.WALL_RIGHT, B = T.WALL_BOT;
 const D = T.DESK, C = T.CHAIR, M = T.MONITOR, S = T.SOFA, TB = T.TABLE;
 const BK = T.BOOKSHELF, P = T.PLANT, CF = T.COFFEE, RG = T.RUG, WB = T.WHITEBOARD;
 const TF = T.TILE_FLOOR, VD = T.VENDING, CT = T.COUNTER, DV = T.DIVIDER;
+const SR = T.SHOP_ROOF, SG = T.SHOP_SIGN, SW = T.SHOP_WALL;
 
+// 음식점 6개:
+//  상단 3개 (rows 1-4): cols 15-18 / 19-22 / 23-26
+//  하단 3개 (rows 9-12): 같은 cols
+//  각 음식점 4x4: row0 지붕 / row1 간판 / row2 벽 / row3 문(중앙 2칸 FLOOR)
+//  줄서기 영역: 상단 rows 5-8, 하단 rows 13-16 (타일바닥)
 const MAP = [
 // 0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
   [W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W, W], // 0
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 1
-  [L, _, M, M, _, _, M, M, _, _, _, _, _, _,DV,TF,WB,TF,TF,TF,TF,TF,TF,TF,WB,TF,TF, R], // 2
-  [L, _, C, C, _, _, C, C, _, _, _, _, _, _,DV,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 3
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TF, C,TF, C,TF, C,TF,TF,TF,TF, R], // 4
-  [L, _, M, M, _, _, M, M, _, _, _, _, _, _,DV,TF,TF,TB,TB,TB,TB,TB,TB,TB,TF,TF,TF, R], // 5
-  [L, _, C, C, _, _, C, C, _, _, _, _, _, _,DV,TF,TF,TF, C,TF, C,TF, C,TF,TF,TF,TF, R], // 6
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 7
-  [L, _, M, M, _, _, M, M, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, R], // 8
-  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, R], // 9
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 10
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TB,TB,TF,TF,TF,TB,TB,TF,TF,TF, R], // 11
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF, C, C,TF,TF,TF, C, C,TF,TF,TF, R], // 12
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 13
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF, C, C,TF,TF,TF, C, C,TF,TF,TF, R], // 14
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TB,TB,TF,TF,TF,TB,TB,TF,TF,TF, R], // 15
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,TF,TF,TF,TF,VD,VD,TF,CT,CT,CT,CF,TF, R], // 16
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR, R], // 1  지붕
+  [L, _, M, M, _, _, M, M, _, _, _, _, _, _,DV,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG, R], // 2  간판
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _,DV,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW, R], // 3  벽
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SW, _, _,SW,SW, _, _,SW,SW, _, _,SW, R], // 4  문
+  [L, _, M, M, _, _, M, M, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 5  줄서기
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 6
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 7
+  [L, _, M, M, _, _, M, M, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 8
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _,DV,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR, R], // 9  지붕
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG, R], // 10 간판
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW, R], // 11 벽
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SW, _, _,SW,SW, _, _,SW,SW, _, _,SW, R], // 12 문
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 13 줄서기
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 14
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 15
+  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 16
   [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B], // 17
 ];
 
-// ══════════════════════════════════════
-// 구역 정의 (상태별 이동 목표)
-// ══════════════════════════════════════
-const ZONES = {
-  '업무 중':   { minC: 1,  minR: 1,  maxC: 9,  maxR: 10, label: '업무 구역' },
-  '회의 중':   { minC: 15, minR: 1,  maxC: 27, maxR: 7,  label: '회의실' },
-  '휴식 중':   { minC: 9,  minR: 1,  maxC: 14, maxR: 17, label: '라운지' },
-  '점심시간':  { minC: 15, minR: 10, maxC: 27, maxR: 16, label: '카페' },
-  '자리비움':  null, // 이동 안 함
-};
+// 음식점 슬롯 정의 (서버의 slotIndex 0~5와 매핑)
+// 상단 3개(rows 1-4) + 하단 3개(rows 9-12)
+const SHOP_SLOTS = [
+  { signCol: 16.5, signRow: 2,  doorCol: 16.5, doorRow: 4,  queueStartRow: 5  },  // 0 (상단-좌)
+  { signCol: 20.5, signRow: 2,  doorCol: 20.5, doorRow: 4,  queueStartRow: 5  },  // 1 (상단-중)
+  { signCol: 24.5, signRow: 2,  doorCol: 24.5, doorRow: 4,  queueStartRow: 5  },  // 2 (상단-우)
+  { signCol: 16.5, signRow: 10, doorCol: 16.5, doorRow: 12, queueStartRow: 13 },  // 3 (하단-좌)
+  { signCol: 20.5, signRow: 10, doorCol: 20.5, doorRow: 12, queueStartRow: 13 },  // 4 (하단-중)
+  { signCol: 24.5, signRow: 10, doorCol: 24.5, doorRow: 12, queueStartRow: 13 },  // 5 (하단-우)
+];
 
-function getZoneTarget(status) {
-  const zone = ZONES[status];
-  if (!zone) return null;
-  // 구역 내 랜덤 바닥 타일 찾기
-  for (let tries = 0; tries < 80; tries++) {
-    const c = zone.minC + Math.floor(Math.random() * (zone.maxC - zone.minC));
-    const r = zone.minR + Math.floor(Math.random() * (zone.maxR - zone.minR));
-    if (r >= 0 && r < MAP_ROWS && c >= 0 && c < MAP_COLS && !SOLID.has(MAP[r][c])) {
-      return { x: c * TILE + 2, y: r * TILE - 10 };
-    }
-  }
-  return null;
+// 투표 순서 → 줄서기 좌표 (문 앞 2열로 정렬, 문 → 아래로)
+function getQueuePosition(slotIdx, orderIdx) {
+  const s = SHOP_SLOTS[slotIdx];
+  if (!s) return null;
+  const colOffset = (orderIdx % 2); // 0 또는 1
+  const rowOffset = Math.floor(orderIdx / 2);
+  const col = Math.floor(s.doorCol) + colOffset; // 16,17 / 20,21 / 24,25
+  const row = s.queueStartRow + rowOffset;
+  if (row > MAP_ROWS - 2) return null; // 맵 밖
+  return { x: col * TILE + 2, y: row * TILE - 10 };
 }
+
+// ══════════════════════════════════════
+// 구역 정의 (자동 이동 영역: 라운지 전체)
+// ══════════════════════════════════════
+const LOUNGE_ZONE = { minC: 1, minR: 1, maxC: 27, maxR: 17 };
 
 // ══════════════════════════════════════
 // 캔버스 & 타일 그리기
@@ -642,6 +741,48 @@ function drawTile(col, row) {
       ctx.fillRect(x+12,y,8,2); ctx.fillRect(x+12,y+S-2,8,2);
       break;
     }
+    case T.SHOP_ROOF: {
+      // 음식점 지붕 (빨간색 기와 느낌)
+      shadow(x, y+2, S, S-2, 0.1);
+      ctx.fillStyle = '#b04040'; ctx.fillRect(x, y, S, S);
+      // 기와 라인
+      ctx.fillStyle = '#8b2e2e';
+      for (let k = 0; k < S; k += 6) ctx.fillRect(x+k, y, 1, S);
+      // 처마 하단
+      ctx.fillStyle = '#6b1e1e'; ctx.fillRect(x, y+S-4, S, 4);
+      ctx.fillStyle = '#4a1414'; ctx.fillRect(x, y+S-2, S, 2);
+      // 하이라이트
+      ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.fillRect(x, y, S, 2);
+      break;
+    }
+    case T.SHOP_SIGN: {
+      // 간판 배경 (나무 판)
+      ctx.fillStyle = '#d4a574'; ctx.fillRect(x, y, S, S);
+      ctx.fillStyle = '#b8895c'; ctx.fillRect(x, y, S, 3);
+      ctx.fillStyle = '#8b6030'; ctx.fillRect(x, y+S-3, S, 3);
+      // 나무결
+      ctx.fillStyle = 'rgba(0,0,0,0.06)';
+      ctx.fillRect(x, y+10, S, 1); ctx.fillRect(x, y+20, S, 1);
+      // 실제 메뉴명 텍스트는 drawShopSigns()에서 overlay로 그림
+      break;
+    }
+    case T.SHOP_WALL: {
+      // 음식점 벽 (밝은 베이지)
+      ctx.fillStyle = '#e8d8b8'; ctx.fillRect(x, y, S, S);
+      ctx.fillStyle = '#d4c4a4'; ctx.fillRect(x, y, 2, S);
+      ctx.fillStyle = '#c0b090'; ctx.fillRect(x, y+S-2, S, 2);
+      // 벽돌 라인
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fillRect(x, y+S/2, S, 1);
+      // 창문 (일부 타일에만 - 문 양옆 판단)
+      const below = MAP[row+1]?.[col];
+      const isDoorRow = below === T.FLOOR || below === T.TILE_FLOOR;
+      // 문 위쪽 벽에는 창문 X, 일반 벽엔 작은 창문
+      if (!isDoorRow && row > 0 && MAP[row-1][col] !== T.SHOP_ROOF && MAP[row-1][col] !== T.SHOP_SIGN) {
+        // 아무것도 안 함 (이 케이스는 거의 없음)
+      }
+      break;
+    }
   }
 }
 
@@ -650,11 +791,8 @@ function drawZoneLabels() {
   ctx.font = 'bold 10px Segoe UI';
   ctx.textAlign = 'center';
 
-  // 반투명 배경 + 텍스트
   const labels = [
     { text: '업무 구역', x: 4.5*TILE, y: 10.5*TILE },
-    { text: '회의실', x: 21*TILE, y: 1.5*TILE },
-    { text: '카페', x: 21*TILE, y: 10.5*TILE },
     { text: '라운지', x: 11.5*TILE, y: 1.5*TILE },
   ];
   labels.forEach(l => {
@@ -666,11 +804,43 @@ function drawZoneLabels() {
   });
 }
 
+// 음식점 간판에 메뉴명 overlay로 그리기
+function drawShopSigns() {
+  ctx.textAlign = 'center';
+  for (let i = 0; i < SHOP_SLOTS.length; i++) {
+    const s = SHOP_SLOTS[i];
+    const menu = lunchMenusBySlot.get(i);
+    const cx = s.signCol * TILE;
+    const cy = s.signRow * TILE + TILE / 2 + 3;
+    if (menu) {
+      // 등록된 메뉴: 밝은 배경 + 검정 글씨
+      ctx.font = 'bold 11px Segoe UI';
+      const text = menu.name;
+      const tw = Math.min(ctx.measureText(text).width, 3.6 * TILE);
+      ctx.fillStyle = '#fff8dc';
+      ctx.fillRect(cx - tw/2 - 6, cy - 10, tw + 12, 16);
+      ctx.strokeStyle = '#8b4513';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(cx - tw/2 - 6, cy - 10, tw + 12, 16);
+      ctx.fillStyle = '#3a1f0c';
+      ctx.fillText(text, cx, cy);
+    } else {
+      // 빈 슬롯: 회색 "? ? ?"
+      ctx.font = 'bold 10px Segoe UI';
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fillRect(cx - 30, cy - 9, 60, 14);
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.fillText('? ? ?', cx, cy);
+    }
+  }
+}
+
 function drawMap() {
   for (let r = 0; r < MAP_ROWS; r++)
     for (let c = 0; c < MAP_COLS; c++)
       drawTile(c, r);
   drawZoneLabels();
+  drawShopSigns();
 }
 
 // ══════════════════════════════════════
@@ -689,13 +859,18 @@ const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '
 let mySpriteImg = null, myProfile = null, originalSVG = '';
 let svgByGender = {}; // { boy: svgText, girl: svgText }
 let myX = 11*32+2, myY = 5*32+2, myDir = 'front', myWalking = false, myFrameIndex = 0;
-let myStatus = '휴식 중';
 const SPEED = 1;
 const keysDown = new Set();
 const peers = new Map(), peerSprites = new Map();
 
 // 말풍선 데이터: id → { text, timer }
 const bubbles = new Map();
+
+// ── 점심 메뉴/투표 상태 (서버와 동기화) ──
+const lunchMenusBySlot = new Map(); // slotIndex → { name, ownerId, ownerNick }
+const lunchVotersBySlot = new Map(); // slotIndex → [{ voterId, voterNick }]
+let myMenuSlot = -1;  // 내가 등록한 slot (-1: 없음)
+let myVoteSlot = -1;  // 내가 투표한 slot (-1: 없음)
 
 function createSpriteImage(svgText, colors, options = {}) {
   const { isPikachu = false, isPsyduck = false, isCat = false, isSprigatito = false, isSlime = false, isCat2 = false, isRabbit = false, isNezuco = false, isCalcifer = false, isPantom = false } = options;
@@ -1003,13 +1178,11 @@ function drawCharacter(img, x, y, dir, walking, frameIdx, nickname, status, id, 
 // ══════════════════════════════════════
 let autoTarget = null, autoIdle = 0, autoIdleDuration = 0;
 let goingToDesk = false, sittingAtDesk = false, deskTarget = null, deskTargetIndex = -1;
-let goingToZone = false, zoneTarget = null;
 let manualControl = false;
 
 function pickAutoTarget() {
   for (let tries = 0; tries < 50; tries++) {
-    const zone = ZONES[myStatus] || ZONES['휴식 중'];
-    if (!zone) { autoTarget = null; return; }
+    const zone = LOUNGE_ZONE;
     const c = zone.minC + Math.floor(Math.random() * (zone.maxC - zone.minC));
     const r = zone.minR + Math.floor(Math.random() * (zone.maxR - zone.minR));
     if (canMove(c * TILE + 2, r * TILE - 10)) {
@@ -1065,14 +1238,6 @@ function startGoingToDesk() {
   autoTarget = null;
 }
 
-function startGoingToZone(status) {
-  const target = getZoneTarget(status);
-  if (!target) return;
-  goingToZone = true;
-  zoneTarget = target;
-  autoTarget = null;
-}
-
 pickAutoTarget();
 
 // ══════════════════════════════════════
@@ -1092,12 +1257,13 @@ function gameLoop() {
   // 앉아있으면 정지
   if (sittingAtDesk) {
     updateCamera(); drawMap();
+    drawQueueGhosts();
     drawPeers();
-    if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, false, 0, myProfile.nickname, myStatus, '__me', myProfile.gender);
+    if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, false, 0, myProfile.nickname, '', '__me', myProfile.gender);
     return requestAnimationFrame(gameLoop);
   }
 
-  manualControl = !goingToDesk && !goingToZone && keysDown.size > 0;
+  manualControl = !goingToDesk && keysDown.size > 0;
   let dx = 0, dy = 0;
 
   if (goingToDesk && deskTarget) {
@@ -1117,14 +1283,6 @@ function gameLoop() {
     }
     dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
     dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
-  } else if (goingToZone && zoneTarget) {
-    const distX = zoneTarget.x - myX, distY = zoneTarget.y - myY;
-    if (Math.sqrt(distX*distX + distY*distY) < 4) {
-      goingToZone = false; zoneTarget = null; pickAutoIdle();
-    } else {
-      dx = Math.sign(distX) * Math.min(SPEED, Math.abs(distX));
-      dy = Math.sign(distY) * Math.min(SPEED, Math.abs(distY));
-    }
   } else if (manualControl) {
     if (keysDown.has('ArrowLeft'))  dx -= SPEED;
     if (keysDown.has('ArrowRight')) dx += SPEED;
@@ -1145,14 +1303,14 @@ function gameLoop() {
   if (dx < 0) myDir = 'left'; else if (dx > 0) myDir = 'right';
   else if (dy < 0) myDir = 'back'; else if (dy > 0) myDir = 'front';
 
-  const skipCollision = goingToDesk || goingToZone;
+  const skipCollision = goingToDesk;
   if (dx !== 0) {
     if (skipCollision || canMove(myX+dx, myY)) myX += dx;
-    else if (!manualControl && !goingToDesk && !goingToZone) pickAutoTarget();
+    else if (!manualControl && !goingToDesk) pickAutoTarget();
   }
   if (dy !== 0) {
     if (skipCollision || canMove(myX, myY+dy)) myY += dy;
-    else if (!manualControl && !goingToDesk && !goingToZone) pickAutoTarget();
+    else if (!manualControl && !goingToDesk) pickAutoTarget();
   }
 
   if (frameCounter % 8 === 0 && myWalking) myFrameIndex++;
@@ -1162,8 +1320,10 @@ function gameLoop() {
     window.electronAPI.socketEmit('move', { x: myX, y: myY, direction: myDir, isWalking: myWalking });
   }
 
-  updateCamera(); drawMap(); drawPeers();
-  if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, myWalking, myFrameIndex, myProfile.nickname, myStatus, '__me', myProfile.gender);
+  updateCamera(); drawMap();
+  drawQueueGhosts();
+  drawPeers();
+  if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, myWalking, myFrameIndex, myProfile.nickname, '', '__me', myProfile.gender);
   requestAnimationFrame(gameLoop);
 }
 
@@ -1174,8 +1334,56 @@ function drawPeers() {
     const isWorking = (peer.mode === 'work');
     const walking = isWorking ? false : peer.isWalking;
     if (walking && frameCounter % 8 === 0) peer._frame = ((peer._frame || 0) + 1);
-    drawCharacter(img, peer.x, peer.y, peer.direction, walking, peer._frame || 0, peer.nickname, peer.status, id, peer.gender);
+    drawCharacter(img, peer.x, peer.y, peer.direction, walking, peer._frame || 0, peer.nickname, '', id, peer.gender);
   }
+}
+
+// ══════════════════════════════════════
+// 줄서기 복사본(고스트) 렌더링
+// ══════════════════════════════════════
+function drawQueueGhosts() {
+  for (const [slotIdx, voters] of lunchVotersBySlot) {
+    voters.forEach((v, orderIdx) => {
+      const pos = getQueuePosition(slotIdx, orderIdx);
+      if (!pos) return;
+      // 스프라이트 선택 (본인이면 mySpriteImg, 아니면 peer)
+      let img, gender;
+      if (v.voterId === mySocketId) {
+        img = mySpriteImg; gender = myProfile && myProfile.gender;
+      } else {
+        img = peerSprites.get(v.voterId);
+        const p = peers.get(v.voterId);
+        gender = p && p.gender;
+      }
+      if (!img) return;
+      // 살짝 반투명하게 (고스트 표현)
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      // 음식점 쪽을 바라보도록 back 방향
+      drawCharacterSimple(img, pos.x, pos.y, 'back', gender);
+      // 닉네임 표시
+      const cx = pos.x + CHAR_W / 2;
+      ctx.globalAlpha = 1.0;
+      ctx.font = '9px Segoe UI';
+      ctx.textAlign = 'center';
+      const name = v.voterNick || '';
+      const tw = ctx.measureText(name).width;
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.fillRect(cx - tw/2 - 4, pos.y - 14, tw + 8, 13);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(name, cx, pos.y - 4);
+      ctx.restore();
+    });
+  }
+}
+
+// 말풍선/닉네임 없이 스프라이트만 렌더 (고스트용)
+function drawCharacterSimple(img, x, y, dir, gender) {
+  const row = ROW_MAP[dir] || 0;
+  const col = getIdleCol(row, gender);
+  const sx = col * FRAME_W, sy = row * FRAME_H;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, sx, sy, FRAME_W, FRAME_H, x, y, CHAR_W, CHAR_H);
 }
 
 // ══════════════════════════════════════
@@ -1242,10 +1450,20 @@ async function connectServer() {
     }
   });
 
-  window.electronAPI.onSocketEvent('user-status-changed', (data) => {
-    const p = peers.get(data.id);
-    if (p) { p.status = data.status; }
-    addSystemMsg(`${data.nickname}: ${data.status}`);
+  window.electronAPI.onSocketEvent('lunch-state', (state) => {
+    applyLunchState(state);
+  });
+
+  window.electronAPI.onSocketEvent('lunch-result', (payload) => {
+    showLunchResult(payload);
+  });
+
+  window.electronAPI.onSocketEvent('lunch-reset', () => {
+    addSystemMsg('🌙 점심 메뉴/투표가 초기화되었습니다');
+  });
+
+  window.electronAPI.onSocketEvent('menu-error', (data) => {
+    addSystemMsg('⚠️ ' + (data && data.message || '오류'));
   });
 
   window.electronAPI.onSocketEvent('user-left', (id) => {
@@ -1280,14 +1498,19 @@ async function connectServer() {
   // 새 연결
   try {
     const result = await window.electronAPI.socketConnect({
-      nickname: myProfile.nickname, colors: myProfile.colors,
+      nickname: myProfile.nickname,
+      realName: myProfile.realName || '',
+      colors: myProfile.colors,
       gender: myProfile.gender || 'boy',
-      x: myX, y: myY, mode: 'rest', status: myStatus,
+      x: myX, y: myY, mode: 'rest',
     });
     mySocketId = result && result.id;
     socketConnected = !!(result && result.connected);
     if (socketConnected) {
       document.getElementById('onlineCount').textContent = '서버 연결됨';
+      // lunch-state가 mySocketId 확정 전에 도착했을 수 있으니 재계산
+      recomputeMyLunchSlots();
+      renderLunchUI();
     } else {
       document.getElementById('onlineCount').textContent = '서버 미연결';
     }
@@ -1325,23 +1548,170 @@ function sendChat() {
 }
 
 // ══════════════════════════════════════
-// 상태 변경
+// 점심 메뉴 / 투표
 // ══════════════════════════════════════
-document.querySelectorAll('.status-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    myStatus = btn.dataset.status;
-    if (socketConnected) window.electronAPI.socketEmit('status-change', myStatus);
-    // 상태에 맞는 구역으로 이동
-    if (myStatus !== '자리비움') startGoingToZone(myStatus);
-  });
-});
+let chatFocused = false;
+function applyLunchState(state) {
+  lunchMenusBySlot.clear();
+  lunchVotersBySlot.clear();
+
+  if (state && Array.isArray(state.menus)) {
+    for (const m of state.menus) {
+      lunchMenusBySlot.set(m.slotIndex, m);
+    }
+  }
+  if (state && state.votes) {
+    for (const slotIdxStr of Object.keys(state.votes)) {
+      const slotIdx = Number(slotIdxStr);
+      const list = state.votes[slotIdxStr] || [];
+      lunchVotersBySlot.set(slotIdx, list);
+    }
+  }
+  recomputeMyLunchSlots();
+  renderLunchUI();
+}
+
+// mySocketId가 뒤늦게 세팅되는 경우(최초 연결 race)에 대비해 별도 계산
+function recomputeMyLunchSlots() {
+  myMenuSlot = -1;
+  myVoteSlot = -1;
+  if (!mySocketId) return;
+  for (const [slot, m] of lunchMenusBySlot) {
+    if (m.ownerId === mySocketId) myMenuSlot = slot;
+  }
+  for (const [slot, voters] of lunchVotersBySlot) {
+    for (const v of voters) {
+      if (v.voterId === mySocketId) myVoteSlot = slot;
+    }
+  }
+}
+
+function renderLunchUI() {
+  // 내 메뉴 영역
+  const myArea = document.getElementById('myMenuArea');
+  if (myMenuSlot >= 0) {
+    const menu = lunchMenusBySlot.get(myMenuSlot);
+    const name = menu ? menu.name : '';
+    myArea.innerHTML = `
+      <div class="menu-mine-label">
+        <span>내 메뉴: <span class="n">${escapeHtml(name)}</span></span>
+        <button class="menu-btn cancel" id="menuUnregister">취소</button>
+      </div>`;
+    document.getElementById('menuUnregister').addEventListener('click', () => {
+      if (socketConnected) window.electronAPI.socketEmit('menu-unregister', null);
+    });
+  } else {
+    myArea.innerHTML = `
+      <div class="menu-input-wrap" id="menuInputWrap">
+        <input type="text" class="menu-input" id="menuInput" placeholder="내 메뉴 입력 (최대 10자)" maxlength="10" />
+        <button class="menu-btn" id="menuRegister">등록</button>
+      </div>`;
+    const input = document.getElementById('menuInput');
+    const btn = document.getElementById('menuRegister');
+    const register = () => {
+      const name = input.value.trim();
+      if (name.length < 1) return;
+      if (socketConnected) window.electronAPI.socketEmit('menu-register', { name });
+      input.value = '';
+    };
+    btn.addEventListener('click', register);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') register(); });
+    input.addEventListener('focus', () => chatFocused = true);
+    input.addEventListener('blur', () => chatFocused = false);
+  }
+
+  // 메뉴 리스트 렌더
+  const listEl = document.getElementById('menuList');
+  listEl.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const menu = lunchMenusBySlot.get(i);
+    const item = document.createElement('div');
+    if (!menu) {
+      item.className = 'menu-item empty';
+      item.textContent = `슬롯 ${i+1} (비어있음)`;
+    } else {
+      const voters = lunchVotersBySlot.get(i) || [];
+      const count = voters.length;
+      const isMyVote = myVoteSlot === i;
+      item.className = 'menu-item' + (isMyVote ? ' voted' : '');
+      item.innerHTML = `
+        <span class="name" title="${escapeHtml(menu.name)}">${escapeHtml(menu.name)}</span>
+        <span class="count">${count}표</span>
+        <button class="vote-btn${isMyVote ? ' voted' : ''}" data-slot="${i}">${isMyVote ? '취소' : '투표'}</button>`;
+      item.querySelector('.vote-btn').addEventListener('click', () => {
+        if (!socketConnected) return;
+        if (isMyVote) {
+          window.electronAPI.socketEmit('vote-cancel', null);
+        } else {
+          window.electronAPI.socketEmit('vote', { slotIndex: i });
+        }
+      });
+    }
+    listEl.appendChild(item);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+// 12시까지 남은 시간 표시
+function updateLunchCountdown() {
+  const el = document.getElementById('lunchCountdown');
+  if (!el) return;
+  const now = new Date();
+  const target = new Date(now);
+  target.setHours(12, 0, 0, 0);
+  let diff = target - now;
+  if (diff < 0) {
+    // 12시 지났으면 내일 00시까지
+    target.setDate(target.getDate() + 1);
+    target.setHours(0, 0, 0, 0);
+    diff = target - now;
+    el.textContent = `초기화까지 ${formatDuration(diff)}`;
+  } else {
+    el.textContent = `발표까지 ${formatDuration(diff)}`;
+  }
+}
+function formatDuration(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
+  return h > 0 ? `${h}시간 ${m}분` : `${m}분`;
+}
+setInterval(updateLunchCountdown, 30 * 1000);
+updateLunchCountdown();
+
+// 초기 빈 메뉴 리스트 렌더
+renderLunchUI();
+
+// 점심 결과 발표 출력
+function showLunchResult(payload) {
+  if (!payload || !Array.isArray(payload.results)) return;
+  addSystemMsg('━━━━━━━━━━━━━━━');
+  addSystemMsg('🍚 점심 투표 결과 발표 (12:00)');
+  const results = payload.results;
+  const medals = ['🥇', '🥈', '🥉'];
+  if (results.length === 0 || results.every(r => r.count === 0)) {
+    addSystemMsg('(투표한 사람이 없습니다)');
+  } else {
+    results.forEach((r, idx) => {
+      if (r.count === 0) return;
+      const prefix = medals[idx] || '・';
+      const names = (r.voterRealNames || []).join(', ');
+      addSystemMsg(`${prefix} ${r.menuName} (${r.count}표): ${names}`);
+    });
+  }
+  if (payload.noVoters && payload.noVoters.length > 0) {
+    addSystemMsg(`미투표: ${payload.noVoters.join(', ')}`);
+  }
+  addSystemMsg('━━━━━━━━━━━━━━━');
+}
 
 // ══════════════════════════════════════
 // 입력
 // ══════════════════════════════════════
-let chatFocused = false;
 document.getElementById('chatInput').addEventListener('focus', () => chatFocused = true);
 document.getElementById('chatInput').addEventListener('blur', () => chatFocused = false);
 document.addEventListener('keydown', (e) => {
@@ -1440,6 +1810,7 @@ function openProfileModal() {
   modalGender = myProfile.gender || 'boy';
   modalColors = { ...(myProfile.colors || {}) };
   document.getElementById('modalNickname').value = myProfile.nickname || '';
+  document.getElementById('modalRealName').value = myProfile.realName || '';
 
   // 성별 버튼
   document.querySelectorAll('.modal-gender').forEach(b => {
@@ -1504,9 +1875,11 @@ document.querySelectorAll('.modal-color input').forEach(inp => {
 // 저장
 document.getElementById('modalSave').addEventListener('click', async () => {
   const nickname = document.getElementById('modalNickname').value.trim();
-  if (nickname.length < 2) return;
+  const realName = document.getElementById('modalRealName').value.trim();
+  if (nickname.length < 2 || realName.length < 2) return;
 
   myProfile.nickname = nickname;
+  myProfile.realName = realName;
   myProfile.gender = modalGender;
   myProfile.colors = { ...modalColors };
   await window.electronAPI.saveProfile(myProfile);
@@ -1518,8 +1891,9 @@ document.getElementById('modalSave').addEventListener('click', async () => {
   // 서버에 다시 알림
   if (socketConnected) {
     window.electronAPI.socketEmit('join', {
-      nickname: myProfile.nickname, colors: myProfile.colors,
-      gender: myProfile.gender, x: myX, y: myY, mode: 'rest', status: myStatus,
+      nickname: myProfile.nickname, realName: myProfile.realName,
+      colors: myProfile.colors, gender: myProfile.gender,
+      x: myX, y: myY, mode: 'rest',
     });
   }
 

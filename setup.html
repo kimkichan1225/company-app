@@ -142,6 +142,12 @@
         <div class="error-msg" id="errorMsg"></div>
       </div>
 
+      <div class="field-group">
+        <label>실명 <span style="font-weight:400;opacity:0.5;">(점심 투표 결과에만 사용)</span></label>
+        <input type="text" class="nickname-input" id="realName" placeholder="실명을 입력하세요" maxlength="10" />
+        <div class="error-msg" id="errorMsgReal"></div>
+      </div>
+
       <div class="color-rows">
         <div class="color-row">
           <label>피부</label>
@@ -182,8 +188,10 @@
   const canvas = document.getElementById('previewCanvas');
   const ctx = canvas.getContext('2d');
   const nicknameInput = document.getElementById('nickname');
+  const realNameInput = document.getElementById('realName');
   const previewName = document.getElementById('previewName');
   const errorMsg = document.getElementById('errorMsg');
+  const errorMsgReal = document.getElementById('errorMsgReal');
   const startBtn = document.getElementById('startBtn');
 
   const ORIG = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
@@ -217,8 +225,11 @@
       if (profile.nickname) {
         nicknameInput.value = profile.nickname;
         previewName.textContent = profile.nickname;
-        startBtn.disabled = false;
       }
+      if (profile.realName) {
+        realNameInput.value = profile.realName;
+      }
+      validateForm();
       if (profile.gender) {
         gender = profile.gender;
         document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
@@ -530,20 +541,33 @@
     });
   }
 
-  // 닉네임
-  nicknameInput.addEventListener('input', () => {
-    const val = nicknameInput.value.trim();
-    previewName.textContent = val || '닉네임';
-    if (val.length === 0) { startBtn.disabled = true; errorMsg.textContent = ''; }
-    else if (val.length < 2) { startBtn.disabled = true; errorMsg.textContent = '2글자 이상 입력해주세요'; }
-    else { startBtn.disabled = false; errorMsg.textContent = ''; }
-  });
+  // 폼 검증 (닉네임 + 실명)
+  function validateForm() {
+    const nick = nicknameInput.value.trim();
+    const real = realNameInput.value.trim();
+    previewName.textContent = nick || '닉네임';
+
+    let nickOk = true, realOk = true;
+    if (nick.length === 0) { errorMsg.textContent = ''; nickOk = false; }
+    else if (nick.length < 2) { errorMsg.textContent = '2글자 이상 입력해주세요'; nickOk = false; }
+    else { errorMsg.textContent = ''; }
+
+    if (real.length === 0) { errorMsgReal.textContent = ''; realOk = false; }
+    else if (real.length < 2) { errorMsgReal.textContent = '2글자 이상 입력해주세요'; realOk = false; }
+    else { errorMsgReal.textContent = ''; }
+
+    startBtn.disabled = !(nickOk && realOk);
+  }
+
+  nicknameInput.addEventListener('input', validateForm);
+  realNameInput.addEventListener('input', validateForm);
 
   // 시작
   startBtn.addEventListener('click', async () => {
     const nickname = nicknameInput.value.trim();
-    if (nickname.length < 2) return;
-    const profile = { nickname, gender, colors: { ...colors }, createdAt: new Date().toISOString() };
+    const realName = realNameInput.value.trim();
+    if (nickname.length < 2 || realName.length < 2) return;
+    const profile = { nickname, realName, gender, colors: { ...colors }, createdAt: new Date().toISOString() };
     await window.electronAPI.saveProfile(profile);
     window.electronAPI.setupDone();
   });
