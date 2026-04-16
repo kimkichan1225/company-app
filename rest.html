@@ -1342,18 +1342,24 @@ function drawPeers() {
 // 줄서기 복사본(고스트) 렌더링
 // ══════════════════════════════════════
 function drawQueueGhosts() {
+  const myNick = myProfile && myProfile.nickname;
   for (const [slotIdx, voters] of lunchVotersBySlot) {
     voters.forEach((v, orderIdx) => {
       const pos = getQueuePosition(slotIdx, orderIdx);
       if (!pos) return;
-      // 스프라이트 선택 (본인이면 mySpriteImg, 아니면 peer)
+      // 스프라이트 선택 (본인이면 mySpriteImg, 아니면 닉네임으로 peer 검색)
       let img, gender;
-      if (v.voterId === mySocketId) {
+      if (v.voterNick === myNick) {
         img = mySpriteImg; gender = myProfile && myProfile.gender;
       } else {
-        img = peerSprites.get(v.voterId);
-        const p = peers.get(v.voterId);
-        gender = p && p.gender;
+        // voterNick으로 peer 찾기 (접속 중인 경우만 복사본 표시됨)
+        for (const [, p] of peers) {
+          if (p.nickname === v.voterNick) {
+            img = peerSprites.get(p.id);
+            gender = p.gender;
+            break;
+          }
+        }
       }
       if (!img) return;
       // 살짝 반투명하게 (고스트 표현)
@@ -1571,17 +1577,18 @@ function applyLunchState(state) {
   renderLunchUI();
 }
 
-// mySocketId가 뒤늦게 세팅되는 경우(최초 연결 race)에 대비해 별도 계산
+// 내 메뉴/투표 slot 계산 (닉네임 기반 — 앱 재시작/재접속에도 내 것으로 복원됨)
 function recomputeMyLunchSlots() {
   myMenuSlot = -1;
   myVoteSlot = -1;
-  if (!mySocketId) return;
+  const myNick = myProfile && myProfile.nickname;
+  if (!myNick) return;
   for (const [slot, m] of lunchMenusBySlot) {
-    if (m.ownerId === mySocketId) myMenuSlot = slot;
+    if (m.ownerNick === myNick) myMenuSlot = slot;
   }
   for (const [slot, voters] of lunchVotersBySlot) {
     for (const v of voters) {
-      if (v.voterId === mySocketId) myVoteSlot = slot;
+      if (v.voterNick === myNick) myVoteSlot = slot;
     }
   }
 }

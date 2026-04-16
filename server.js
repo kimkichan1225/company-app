@@ -83,12 +83,14 @@ async function getRecentChats(limit = 50) {
 // ── 접속 중인 유저 관리 (메모리) ──
 const users = new Map();
 
-// ── 점심 메뉴 투표 시스템 ──
+// ── 점심 메뉴 투표 시스템 (nickname 기반 — 앱 재시작/재접속에도 유지, 00시에만 초기화) ──
 const MAX_MENU_SLOTS = 6;
-// 메뉴: slotIndex → { name, ownerId, ownerNick, ownerRealName }
+// 메뉴: slotIndex → { name, ownerNick, ownerRealName }
 const lunchMenus = new Map();
-// 투표: voterId → slotIndex
+// 투표: nickname → slotIndex
 const lunchVotes = new Map();
+// 투표자의 실명 캐시: nickname → realName (발표 시 실명 사용)
+const voterRealNames = new Map();
 // 결과 발표는 하루에 한 번만 (날짜 문자열 저장)
 let lastResultDate = null;
 let lastResetDate = null;
@@ -100,9 +102,9 @@ function getAvailableSlot() {
   return -1;
 }
 
-function getOwnerSlot(socketId) {
+function getOwnerSlotByNick(nickname) {
   for (const [slot, m] of lunchMenus) {
-    if (m.ownerId === socketId) return slot;
+    if (m.ownerNick === nickname) return slot;
   }
   return -1;
 }
@@ -113,19 +115,14 @@ function buildLunchState() {
     menus.push({
       slotIndex: slot,
       name: m.name,
-      ownerId: m.ownerId,
       ownerNick: m.ownerNick,
     });
   }
   menus.sort((a, b) => a.slotIndex - b.slotIndex);
   const votes = {};
-  for (const [voterId, slotIdx] of lunchVotes) {
+  for (const [voterNick, slotIdx] of lunchVotes) {
     if (!votes[slotIdx]) votes[slotIdx] = [];
-    const u = users.get(voterId);
-    votes[slotIdx].push({
-      voterId,
-      voterNick: u ? u.nickname : '(알수없음)',
-    });
+    votes[slotIdx].push({ voterNick });
   }
   return { menus, votes };
 }
@@ -137,20 +134,28 @@ function broadcastLunchState() {
 function resetLunch(reason = 'reset') {
   lunchMenus.clear();
   lunchVotes.clear();
+  voterRealNames.clear();
   io.emit('lunch-reset', { reason });
   broadcastLunchState();
   console.log(`[점심] 초기화 (${reason})`);
 }
 
+function getRealNameForNick(nickname) {
+  // 현재 접속 중인 유저 우선 → 없으면 voterRealNames 캐시 → 없으면 닉네임
+  for (const u of users.values()) {
+    if (u.nickname === nickname && u.realName) return u.realName;
+  }
+  return voterRealNames.get(nickname) || nickname;
+}
+
 function announceLunchResult() {
-  // 결과 집계
+  // 결과 집계 (nickname 기반)
   const tally = new Map(); // slotIdx → [{voterNick, voterRealName}]
-  for (const [voterId, slotIdx] of lunchVotes) {
-    const u = users.get(voterId);
+  for (const [voterNick, slotIdx] of lunchVotes) {
     if (!tally.has(slotIdx)) tally.set(slotIdx, []);
     tally.get(slotIdx).push({
-      voterNick: u ? u.nickname : '(알수없음)',
-      voterRealName: u && u.realName ? u.realName : (u ? u.nickname : '(알수없음)'),
+      voterNick,
+      voterRealName: getRealNameForNick(voterNick),
     });
   }
 
@@ -167,11 +172,11 @@ function announceLunchResult() {
   }
   results.sort((a, b) => b.count - a.count || a.slotIndex - b.slotIndex);
 
-  // 미투표 유저 (실명)
-  const votedIds = new Set(lunchVotes.keys());
+  // 미투표 유저 (현재 접속자 기준 실명)
+  const votedNicks = new Set(lunchVotes.keys());
   const noVoters = [];
-  for (const [id, u] of users) {
-    if (!votedIds.has(id)) {
+  for (const u of users.values()) {
+    if (!votedNicks.has(u.nickname)) {
       noVoters.push(u.realName || u.nickname);
     }
   }
@@ -300,6 +305,9 @@ io.on('connection', (socket) => {
 
     users.set(socket.id, user);
 
+    // 재접속: 이미 내 닉네임으로 투표한 기록이 있으면 실명 캐시 업데이트
+    if (user.realName) voterRealNames.set(user.nickname, user.realName);
+
     // DB에 프로필 저장
     await saveProfile(data.nickname, data.colors);
 
@@ -310,7 +318,7 @@ io.on('connection', (socket) => {
     const recentChats = await getRecentChats(30);
     socket.emit('chat-history', recentChats);
 
-    // 현재 점심 메뉴/투표 상태 전송
+    // 현재 점심 메뉴/투표 상태 전송 (닉네임 기반이므로 재접속 시에도 내 메뉴가 복원됨)
     socket.emit('lunch-state', buildLunchState());
 
     // 다른 유저에게 새 유저 알림
@@ -318,7 +326,7 @@ io.on('connection', (socket) => {
     console.log(`입장: ${data.nickname} (${socket.id}) [${user.mode}]`);
   });
 
-  // 점심 메뉴 등록 (1인 1개)
+  // 점심 메뉴 등록 (1인 1개, nickname 기반)
   socket.on('menu-register', (payload) => {
     const user = users.get(socket.id);
     if (!user) return;
@@ -327,11 +335,12 @@ io.on('connection', (socket) => {
     const trimmed = name.trim().slice(0, 10);
     if (trimmed.length < 1) return;
 
-    // 이미 등록한 유저면 이름만 변경
-    const existingSlot = getOwnerSlot(socket.id);
+    // 이미 등록한 유저면 이름만 변경 (닉네임 매칭)
+    const existingSlot = getOwnerSlotByNick(user.nickname);
     if (existingSlot >= 0) {
       const m = lunchMenus.get(existingSlot);
       m.name = trimmed;
+      m.ownerRealName = user.realName || user.nickname;
       broadcastLunchState();
       return;
     }
@@ -343,7 +352,6 @@ io.on('connection', (socket) => {
     }
     lunchMenus.set(slot, {
       name: trimmed,
-      ownerId: socket.id,
       ownerNick: user.nickname,
       ownerRealName: user.realName || user.nickname,
     });
@@ -352,30 +360,35 @@ io.on('connection', (socket) => {
 
   // 점심 메뉴 등록 취소
   socket.on('menu-unregister', () => {
-    const slot = getOwnerSlot(socket.id);
+    const user = users.get(socket.id);
+    if (!user) return;
+    const slot = getOwnerSlotByNick(user.nickname);
     if (slot < 0) return;
     lunchMenus.delete(slot);
     // 이 메뉴에 투표한 사람들의 투표도 취소
-    for (const [voterId, slotIdx] of lunchVotes) {
-      if (slotIdx === slot) lunchVotes.delete(voterId);
+    for (const [voterNick, slotIdx] of lunchVotes) {
+      if (slotIdx === slot) lunchVotes.delete(voterNick);
     }
     broadcastLunchState();
   });
 
-  // 투표
+  // 투표 (nickname 기반 — 앱 껐다 켜도 유지)
   socket.on('vote', (payload) => {
     const user = users.get(socket.id);
     if (!user) return;
     const slotIdx = typeof payload === 'number' ? payload : (payload && payload.slotIndex);
     if (typeof slotIdx !== 'number') return;
     if (!lunchMenus.has(slotIdx)) return;
-    lunchVotes.set(socket.id, slotIdx);
+    lunchVotes.set(user.nickname, slotIdx);
+    if (user.realName) voterRealNames.set(user.nickname, user.realName);
     broadcastLunchState();
   });
 
   // 투표 취소
   socket.on('vote-cancel', () => {
-    if (lunchVotes.delete(socket.id)) broadcastLunchState();
+    const user = users.get(socket.id);
+    if (!user) return;
+    if (lunchVotes.delete(user.nickname)) broadcastLunchState();
   });
 
   // 위치 업데이트
@@ -464,25 +477,14 @@ io.on('connection', (socket) => {
     const user = users.get(socket.id);
     if (user) {
       console.log(`퇴장: ${user.nickname} (${socket.id})`);
+      // 실명 캐시는 보존 (결과 발표 시 사용)
+      if (user.realName) voterRealNames.set(user.nickname, user.realName);
       releaseSeat(socket.id);
       io.emit('user-left', socket.id);
     }
     users.delete(socket.id);
-
-    // 메뉴 등록자였으면 메뉴도 제거
-    const slot = getOwnerSlot(socket.id);
-    if (slot >= 0) {
-      lunchMenus.delete(slot);
-      // 해당 메뉴 투표 정리
-      for (const [voterId, slotIdx] of lunchVotes) {
-        if (slotIdx === slot) lunchVotes.delete(voterId);
-      }
-    }
-    // 본인 투표도 제거
-    lunchVotes.delete(socket.id);
-    if (slot >= 0 || lunchVotes.has(socket.id)) {
-      broadcastLunchState();
-    }
+    // ※ 점심 메뉴/투표는 삭제하지 않음 — nickname 기반으로 유지되어 재접속 시 복원됨.
+    //    매일 00시(KST)에만 resetLunch()로 초기화.
   });
 });
 
