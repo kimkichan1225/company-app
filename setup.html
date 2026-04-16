@@ -11,7 +11,8 @@
     font-family: 'Segoe UI', sans-serif;
     background: #1a1a2e;
     color: #ecf0f1;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .titlebar {
@@ -98,6 +99,59 @@
   }
   .start-btn:hover { background: #2ecc71; }
   .start-btn:disabled { background: #555; cursor: not-allowed; }
+
+  /* 말풍선 커스터마이징 */
+  .bubble-section {
+    width: 100%;
+    border-top: 1px solid #333;
+    padding-top: 12px;
+  }
+  .bubble-section-title {
+    font-size: 13px; font-weight: 700; margin-bottom: 8px;
+  }
+  .bubble-tabs {
+    display: flex; gap: 4px; margin-bottom: 8px;
+  }
+  .bubble-tab {
+    flex: 1; padding: 6px 0; border: 2px solid #333; border-radius: 8px;
+    background: #16213e; color: #aaa; font-size: 11px; cursor: pointer;
+    text-align: center; transition: all 0.2s;
+  }
+  .bubble-tab:hover { border-color: #3498db; color: #ecf0f1; }
+  .bubble-tab.active { border-color: #3498db; background: #1a3a6e; color: white; }
+  .bubble-list {
+    display: flex; flex-direction: column; gap: 4px;
+    max-height: 150px; overflow-y: auto; margin-bottom: 6px;
+    padding-right: 4px;
+  }
+  .bubble-list::-webkit-scrollbar { width: 4px; }
+  .bubble-list::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+  .bubble-item {
+    display: flex; align-items: center; gap: 4px;
+  }
+  .bubble-item input {
+    flex: 1; background: #16213e; border: 1px solid #0f3460; border-radius: 6px;
+    padding: 5px 8px; color: #ecf0f1; font-size: 12px; outline: none;
+  }
+  .bubble-item input:focus { border-color: #3498db; }
+  .bubble-del-btn {
+    width: 24px; height: 24px; border: none; border-radius: 6px;
+    background: #c0392b; color: white; font-size: 14px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: background 0.2s;
+  }
+  .bubble-del-btn:hover { background: #e74c3c; }
+  .bubble-actions {
+    display: flex; gap: 6px;
+  }
+  .bubble-add-btn, .bubble-reset-btn {
+    padding: 5px 10px; border: none; border-radius: 6px;
+    font-size: 11px; cursor: pointer; transition: background 0.2s;
+  }
+  .bubble-add-btn { background: #2980b9; color: white; }
+  .bubble-add-btn:hover { background: #3498db; }
+  .bubble-reset-btn { background: #7f8c8d; color: white; }
+  .bubble-reset-btn:hover { background: #95a5a6; }
 </style>
 </head>
 <body>
@@ -178,6 +232,22 @@
     </div>
   </div>
 
+  <!-- 말풍선 메시지 커스터마이징 -->
+  <div class="bubble-section">
+    <div class="bubble-section-title">말풍선 메시지</div>
+    <div class="bubble-tabs">
+      <button class="bubble-tab active" data-cat="idle">대기</button>
+      <button class="bubble-tab" data-cat="walk">이동</button>
+      <button class="bubble-tab" data-cat="drag">드래그</button>
+      <button class="bubble-tab" data-cat="click">클릭</button>
+    </div>
+    <div class="bubble-list" id="bubbleList"></div>
+    <div class="bubble-actions">
+      <button class="bubble-add-btn" id="bubbleAddBtn">+ 추가</button>
+      <button class="bubble-reset-btn" id="bubbleResetBtn">기본값 초기화</button>
+    </div>
+  </div>
+
   <div style="display:flex;gap:8px;width:100%;margin-top:auto;">
     <button class="start-btn" id="startBtn" disabled style="flex:1;margin-top:0;">시작하기</button>
     <button class="start-btn" id="quitBtn" style="flex:0 0 80px;margin-top:0;background:#555;font-size:13px;">종료</button>
@@ -205,6 +275,78 @@
     pants: { input: document.getElementById('colorPants'), hex: document.getElementById('hexPants') },
     shoes: { input: document.getElementById('colorShoes'), hex: document.getElementById('hexShoes') },
   };
+
+  // 말풍선 기본 메시지
+  const DEFAULT_BUBBLE = {
+    idle: [
+      '집중 중...', '열심히 하는 중~', '거의 다 됐다!', '으음...',
+      '커피 마시고 싶다☕', '오늘 할 일이 많네', '슬슬 배고프다',
+      '회의 몇 시지?', '점심 뭐 먹지', '퇴근하고 싶다...',
+      '집중집중!', '한 잔 더...', '메일 확인해야지', '아 맞다!',
+      '오늘 날씨 좋다', '주말이 빨리 왔으면', '화이팅!',
+      '졸리다...', '간식 먹고 싶다', '오늘도 수고했어',
+    ],
+    walk: ['잠깐 스트레칭~', '화장실 다녀올게', '물 좀 마시자', '기지개~'],
+    drag: ['으악!', '놔줘!', '높다!', '일하고 있었는데!'],
+    click: ['안녕!', '헤헤~', '뭐야?', '놀아줘!', '반가워!'],
+  };
+  let bubbleMessages = JSON.parse(JSON.stringify(DEFAULT_BUBBLE));
+  let currentBubbleCat = 'idle';
+
+  // 말풍선 UI 렌더링
+  function renderBubbleList() {
+    const list = document.getElementById('bubbleList');
+    list.innerHTML = '';
+    const msgs = bubbleMessages[currentBubbleCat];
+    msgs.forEach((msg, i) => {
+      const item = document.createElement('div');
+      item.className = 'bubble-item';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = msg;
+      input.maxLength = 30;
+      input.addEventListener('input', (e) => {
+        bubbleMessages[currentBubbleCat][i] = e.target.value;
+      });
+      const del = document.createElement('button');
+      del.className = 'bubble-del-btn';
+      del.textContent = '×';
+      del.addEventListener('click', () => {
+        bubbleMessages[currentBubbleCat].splice(i, 1);
+        renderBubbleList();
+      });
+      item.appendChild(input);
+      item.appendChild(del);
+      list.appendChild(item);
+    });
+    // 리스트 맨 아래로 스크롤
+    list.scrollTop = list.scrollHeight;
+  }
+
+  // 말풍선 탭 전환
+  document.querySelectorAll('.bubble-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.bubble-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentBubbleCat = tab.dataset.cat;
+      renderBubbleList();
+    });
+  });
+
+  // 메시지 추가
+  document.getElementById('bubbleAddBtn').addEventListener('click', () => {
+    bubbleMessages[currentBubbleCat].push('');
+    renderBubbleList();
+    // 새로 추가된 input에 포커스
+    const inputs = document.querySelectorAll('#bubbleList input');
+    if (inputs.length) inputs[inputs.length - 1].focus();
+  });
+
+  // 기본값 초기화
+  document.getElementById('bubbleResetBtn').addEventListener('click', () => {
+    bubbleMessages[currentBubbleCat] = [...DEFAULT_BUBBLE[currentBubbleCat]];
+    renderBubbleList();
+  });
 
   let originalSVG = '';
   let spriteImg = null;
@@ -242,7 +384,15 @@
           cfg.hex.textContent = colors[key];
         }
       }
+      if (profile.bubbleMessages) {
+        for (const cat of Object.keys(DEFAULT_BUBBLE)) {
+          if (Array.isArray(profile.bubbleMessages[cat])) {
+            bubbleMessages[cat] = [...profile.bubbleMessages[cat]];
+          }
+        }
+      }
     }
+    renderBubbleList();
     await loadSVG();
   }
 
@@ -567,7 +717,12 @@
     const nickname = nicknameInput.value.trim();
     const realName = realNameInput.value.trim();
     if (nickname.length < 2 || realName.length < 2) return;
-    const profile = { nickname, realName, gender, colors: { ...colors }, createdAt: new Date().toISOString() };
+    // 빈 문자열 메시지 제거
+    const cleanBubble = {};
+    for (const cat of Object.keys(bubbleMessages)) {
+      cleanBubble[cat] = bubbleMessages[cat].filter(m => m.trim().length > 0);
+    }
+    const profile = { nickname, realName, gender, colors: { ...colors }, bubbleMessages: cleanBubble, createdAt: new Date().toISOString() };
     await window.electronAPI.saveProfile(profile);
     window.electronAPI.setupDone();
   });

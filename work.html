@@ -142,8 +142,8 @@
   let isDragging = false;
   let dragOffsetX = 0, dragOffsetY = 0;
 
-  // 말풍선 메시지
-  const MESSAGES = {
+  // 말풍선 메시지 (기본값, 프로필에서 덮어쓰기 가능)
+  const DEFAULT_MESSAGES = {
     idle: [
       '집중 중...', '열심히 하는 중~', '거의 다 됐다!', '으음...',
       '커피 마시고 싶다☕', '오늘 할 일이 많네', '슬슬 배고프다',
@@ -156,6 +156,7 @@
     drag: ['으악!', '놔줘!', '높다!', '일하고 있었는데!'],
     click: ['안녕!', '헤헤~', '뭐야?', '놀아줘!', '반가워!'],
   };
+  const MESSAGES = JSON.parse(JSON.stringify(DEFAULT_MESSAGES));
 
   // 원본 색상
   const ORIG_COLORS = { skin: '#fee7d5', hair: '#bb7750', top: '#df2210', pants: '#10a4df', shoes: '#762f08' };
@@ -164,6 +165,14 @@
   async function loadSprite() {
     let svgText = await window.electronAPI.readSVG();
     const profile = await window.electronAPI.loadProfile();
+    // 프로필에 저장된 말풍선 메시지 적용
+    if (profile && profile.bubbleMessages) {
+      for (const cat of Object.keys(DEFAULT_MESSAGES)) {
+        if (Array.isArray(profile.bubbleMessages[cat]) && profile.bubbleMessages[cat].length > 0) {
+          MESSAGES[cat] = [...profile.bubbleMessages[cat]];
+        }
+      }
+    }
     const isPikachu = profile && profile.gender === 'pikachu';
     const isPsyduck = profile && profile.gender === 'psyduck';
     const isCat = profile && profile.gender === 'cat';

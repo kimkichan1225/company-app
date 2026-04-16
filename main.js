@@ -5,7 +5,7 @@ const https = require('https');
 const { execFile } = require('child_process');
 const { io: ioClient } = require('socket.io-client');
 
-const CURRENT_VERSION = '1.1.50';
+const CURRENT_VERSION = '1.1.51';
 const VERSION_URL = 'https://raw.githubusercontent.com/kimkichan1225/company-app/main/version.json';
 const SERVER_URL = 'https://web-production-3efa6.up.railway.app';
 
@@ -813,9 +813,9 @@ function createSetupWindow() {
 
   setupWin = new BrowserWindow({
     width: 520,
-    height: 740,
+    height: 860,
     x: Math.floor((width - 520) / 2),
-    y: Math.floor((height - 740) / 2),
+    y: Math.floor((height - 860) / 2),
     frame: false,
     resizable: false,
     transparent: false,
