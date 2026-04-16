@@ -226,7 +226,7 @@ setInterval(() => {
   }
 }, 30 * 1000);
 
-// 책상 좌석 위치
+// 책상 좌석 위치 (총 20자리: 5줄 × 4자리)
 const SEATS = [
   { col: 2,  row: 3,  dir: 'back' },
   { col: 3,  row: 3,  dir: 'back' },
@@ -240,6 +240,14 @@ const SEATS = [
   { col: 3,  row: 9,  dir: 'back' },
   { col: 6,  row: 9,  dir: 'back' },
   { col: 7,  row: 9,  dir: 'back' },
+  { col: 2,  row: 12, dir: 'back' },
+  { col: 3,  row: 12, dir: 'back' },
+  { col: 6,  row: 12, dir: 'back' },
+  { col: 7,  row: 12, dir: 'back' },
+  { col: 2,  row: 15, dir: 'back' },
+  { col: 3,  row: 15, dir: 'back' },
+  { col: 6,  row: 15, dir: 'back' },
+  { col: 7,  row: 15, dir: 'back' },
 ];
 
 const seatAssignments = new Map();

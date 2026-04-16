@@ -369,11 +369,11 @@ const MAP = [
   [L, _, M, M, _, _, M, M, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 8
   [L, _, C, C, _, _, C, C, _, _, _, _, _, _,DV,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR,SR, R], // 9  지붕
   [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG,SG, R], // 10 간판
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW, R], // 11 벽
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _,DV,SW, _, _,SW,SW, _, _,SW,SW, _, _,SW, R], // 12 문
+  [L, _, M, M, _, _, M, M, _, _, _, _, _, _,DV,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW,SW, R], // 11 벽+책상
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _,DV,SW, _, _,SW,SW, _, _,SW,SW, _, _,SW, R], // 12 문+의자
   [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 13 줄서기
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 14
-  [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 15
+  [L, _, M, M, _, _, M, M, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 14 책상
+  [L, _, C, C, _, _, C, C, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 15 의자
   [L, _, _, _, _, _, _, _, _, _, _, _, _, _, _,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF,TF, R], // 16
   [B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B, B], // 17
 ];
@@ -1199,7 +1199,7 @@ function pickAutoIdle() {
   autoIdleDuration = 120 + Math.floor(Math.random() * 180);
 }
 
-// 좌석 관련
+// 좌석 관련 (총 20자리: 5줄 × 4자리)
 const SEAT_POSITIONS = [
   { x: 2*32+2, y: 3*32-10 }, { x: 3*32+2, y: 3*32-10 },
   { x: 6*32+2, y: 3*32-10 }, { x: 7*32+2, y: 3*32-10 },
@@ -1207,6 +1207,10 @@ const SEAT_POSITIONS = [
   { x: 6*32+2, y: 6*32-10 }, { x: 7*32+2, y: 6*32-10 },
   { x: 2*32+2, y: 9*32-10 }, { x: 3*32+2, y: 9*32-10 },
   { x: 6*32+2, y: 9*32-10 }, { x: 7*32+2, y: 9*32-10 },
+  { x: 2*32+2, y: 12*32-10 }, { x: 3*32+2, y: 12*32-10 },
+  { x: 6*32+2, y: 12*32-10 }, { x: 7*32+2, y: 12*32-10 },
+  { x: 2*32+2, y: 15*32-10 }, { x: 3*32+2, y: 15*32-10 },
+  { x: 6*32+2, y: 15*32-10 }, { x: 7*32+2, y: 15*32-10 },
 ];
 
 function findNearestSeat() {
