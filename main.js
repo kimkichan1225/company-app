@@ -544,35 +544,53 @@ function switchMode(mode) {
 }
 
 // 트레이 아이콘 생성
-function createTray() {
-  // 트레이 아이콘 (파일 우선, 없으면 기본 폴백)
-  const iconPath = path.join(__dirname, 'tray-icon.png');
-  let icon;
-  try {
-    icon = nativeImage.createFromPath(iconPath);
-    if (icon.isEmpty()) throw new Error('icon empty');
-  } catch (e) {
-    icon = nativeImage.createFromDataURL(
-      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMklEQVQ4T2P8z8BQz0BAwMCIBDCKGBhYGP4zMDIwICsAMRgYGP4zMDAwoOuBmUL/GQBR3REREfXJYQAAAABJRU5ErkJggg=='
-    );
-  }
-  tray = new Tray(icon);
+// ── 자동 실행 (Windows 시작 시) ──
+function isAutoLaunchEnabled() {
+  try { return !!app.getLoginItemSettings().openAtLogin; }
+  catch (e) { return false; }
+}
 
-  const contextMenu = Menu.buildFromTemplate([
+function setAutoLaunch(enabled) {
+  // 개발 모드에서는 electron.exe를 자동 실행시키면 안 되므로 skip
+  if (!app.isPackaged) return;
+  try {
+    app.setLoginItemSettings({
+      openAtLogin: !!enabled,
+      path: process.execPath,
+      args: [],
+    });
+  } catch (e) {
+    console.error('자동 실행 설정 실패:', e.message);
+  }
+}
+
+function buildTrayMenu() {
+  return Menu.buildFromTemplate([
     { label: `FitCharacter v${CURRENT_VERSION}`, enabled: false },
     { type: 'separator' },
     {
       label: '일하는 중',
       type: 'radio',
+      checked: currentMode === 'work',
       click: () => switchMode('work'),
     },
     {
       label: '휴식 중',
       type: 'radio',
-      checked: true,
+      checked: currentMode !== 'work',
       click: () => switchMode('rest'),
     },
     { type: 'separator' },
+    {
+      label: 'Windows 시작 시 자동 실행',
+      type: 'checkbox',
+      checked: isAutoLaunchEnabled(),
+      click: (item) => {
+        setAutoLaunch(item.checked);
+        // 메뉴 재생성으로 체크 상태 동기화
+        if (tray) tray.setContextMenu(buildTrayMenu());
+      },
+    },
     {
       label: '프로필 수정',
       click: () => openSetupForEdit(),
@@ -589,9 +607,24 @@ function createTray() {
       },
     },
   ]);
+}
+
+function createTray() {
+  // 트레이 아이콘 (파일 우선, 없으면 기본 폴백)
+  const iconPath = path.join(__dirname, 'tray-icon.png');
+  let icon;
+  try {
+    icon = nativeImage.createFromPath(iconPath);
+    if (icon.isEmpty()) throw new Error('icon empty');
+  } catch (e) {
+    icon = nativeImage.createFromDataURL(
+      'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAMklEQVQ4T2P8z8BQz0BAwMCIBDCKGBhYGP4zMDIwICsAMRgYGP4zMDAwoOuBmUL/GQBR3REREfXJYQAAAABJRU5ErkJggg=='
+    );
+  }
+  tray = new Tray(icon);
 
   tray.setToolTip(`Fit Character v${CURRENT_VERSION}`);
-  tray.setContextMenu(contextMenu);
+  tray.setContextMenu(buildTrayMenu());
 
   // 트레이 더블클릭으로 모드 전환
   tray.on('double-click', () => {
@@ -811,6 +844,17 @@ function createSetupWindow() {
 
 // 앱 시작
 app.whenReady().then(async () => {
+  // 최초 실행 시 자동 실행(로그인 시 시작) 기본 활성화 (한 번만)
+  try {
+    const autoLaunchFlag = path.join(app.getPath('userData'), 'auto-launch-initialized.flag');
+    if (!fs.existsSync(autoLaunchFlag)) {
+      setAutoLaunch(true);
+      fs.writeFileSync(autoLaunchFlag, '1', 'utf-8');
+    }
+  } catch (e) {
+    console.error('자동 실행 초기화 실패:', e.message);
+  }
+
   createTray();
 
   // 1) 이전 업데이트 결과 안내 (성공/실패/중단)
