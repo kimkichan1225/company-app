@@ -277,6 +277,21 @@
           </div>
         </div>
       </div>
+      <!-- 말풍선 메시지 커스터마이징 -->
+      <div style="border-top:1px solid #333;padding-top:12px;margin-top:12px;">
+        <div style="font-size:12px;font-weight:700;margin-bottom:8px;">말풍선 메시지 (업무 모드)</div>
+        <div id="modalBubbleTabs" style="display:flex;gap:4px;margin-bottom:8px;">
+          <button class="modal-bubble-tab" data-cat="idle" style="flex:1;padding:5px 0;border:2px solid #3498db;border-radius:6px;background:#1a3a6e;color:white;font-size:10px;cursor:pointer;">대기</button>
+          <button class="modal-bubble-tab" data-cat="walk" style="flex:1;padding:5px 0;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:10px;cursor:pointer;">이동</button>
+          <button class="modal-bubble-tab" data-cat="drag" style="flex:1;padding:5px 0;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:10px;cursor:pointer;">드래그</button>
+          <button class="modal-bubble-tab" data-cat="click" style="flex:1;padding:5px 0;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:10px;cursor:pointer;">클릭</button>
+        </div>
+        <div id="modalBubbleList" style="display:flex;flex-direction:column;gap:4px;max-height:130px;overflow-y:auto;margin-bottom:6px;padding-right:4px;"></div>
+        <div style="display:flex;gap:6px;">
+          <button id="modalBubbleAdd" style="padding:4px 10px;border:none;border-radius:6px;background:#2980b9;color:white;font-size:10px;cursor:pointer;">+ 추가</button>
+          <button id="modalBubbleReset" style="padding:4px 10px;border:none;border-radius:6px;background:#7f8c8d;color:white;font-size:10px;cursor:pointer;">기본값 초기화</button>
+        </div>
+      </div>
       <div style="display:flex;gap:8px;margin-top:16px;">
         <button id="modalSave" style="flex:1;padding:10px;background:#27ae60;border:none;border-radius:8px;color:white;font-size:13px;font-weight:700;cursor:pointer;">저장</button>
         <button id="modalCancel" style="flex:0 0 70px;padding:10px;background:#555;border:none;border-radius:8px;color:white;font-size:13px;cursor:pointer;">취소</button>
@@ -1817,11 +1832,101 @@ let modalGender = 'boy';
 let modalColors = {};
 let modalSpriteImg = null;
 
+// 말풍선 메시지 기본값
+const DEFAULT_BUBBLE_MSGS = {
+  idle: [
+    '집중 중...', '열심히 하는 중~', '거의 다 됐다!', '으음...',
+    '커피 마시고 싶다☕', '오늘 할 일이 많네', '슬슬 배고프다',
+    '회의 몇 시지?', '점심 뭐 먹지', '퇴근하고 싶다...',
+    '집중집중!', '한 잔 더...', '메일 확인해야지', '아 맞다!',
+    '오늘 날씨 좋다', '주말이 빨리 왔으면', '화이팅!',
+    '졸리다...', '간식 먹고 싶다', '오늘도 수고했어',
+  ],
+  walk: ['잠깐 스트레칭~', '화장실 다녀올게', '물 좀 마시자', '기지개~'],
+  drag: ['으악!', '놔줘!', '높다!', '일하고 있었는데!'],
+  click: ['안녕!', '헤헤~', '뭐야?', '놀아줘!', '반가워!'],
+};
+let modalBubbleMessages = {};
+let modalBubbleCat = 'idle';
+
+function renderModalBubbleList() {
+  const list = document.getElementById('modalBubbleList');
+  list.innerHTML = '';
+  const msgs = modalBubbleMessages[modalBubbleCat] || [];
+  msgs.forEach((msg, i) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'display:flex;align-items:center;gap:4px;';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = msg;
+    input.maxLength = 30;
+    input.style.cssText = 'flex:1;background:#16213e;border:1px solid #0f3460;border-radius:6px;padding:4px 8px;color:#ecf0f1;font-size:11px;outline:none;';
+    input.addEventListener('input', (e) => { modalBubbleMessages[modalBubbleCat][i] = e.target.value; });
+    input.addEventListener('focus', () => { input.style.borderColor = '#3498db'; });
+    input.addEventListener('blur', () => { input.style.borderColor = '#0f3460'; });
+    const del = document.createElement('button');
+    del.textContent = '×';
+    del.style.cssText = 'width:22px;height:22px;border:none;border-radius:6px;background:#c0392b;color:white;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+    del.addEventListener('click', () => { modalBubbleMessages[modalBubbleCat].splice(i, 1); renderModalBubbleList(); });
+    del.addEventListener('mouseenter', () => { del.style.background = '#e74c3c'; });
+    del.addEventListener('mouseleave', () => { del.style.background = '#c0392b'; });
+    item.appendChild(input);
+    item.appendChild(del);
+    list.appendChild(item);
+  });
+  list.scrollTop = list.scrollHeight;
+}
+
+// 말풍선 탭
+document.querySelectorAll('.modal-bubble-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.modal-bubble-tab').forEach(t => {
+      t.style.borderColor = '#333'; t.style.background = '#16213e'; t.style.color = '#aaa';
+    });
+    tab.style.borderColor = '#3498db'; tab.style.background = '#1a3a6e'; tab.style.color = 'white';
+    modalBubbleCat = tab.dataset.cat;
+    renderModalBubbleList();
+  });
+});
+
+// 메시지 추가
+document.getElementById('modalBubbleAdd').addEventListener('click', () => {
+  if (!modalBubbleMessages[modalBubbleCat]) modalBubbleMessages[modalBubbleCat] = [];
+  modalBubbleMessages[modalBubbleCat].push('');
+  renderModalBubbleList();
+  const inputs = document.querySelectorAll('#modalBubbleList input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+});
+
+// 기본값 초기화
+document.getElementById('modalBubbleReset').addEventListener('click', () => {
+  modalBubbleMessages[modalBubbleCat] = [...DEFAULT_BUBBLE_MSGS[modalBubbleCat]];
+  renderModalBubbleList();
+});
+
 function openProfileModal() {
   modalGender = myProfile.gender || 'boy';
   modalColors = { ...(myProfile.colors || {}) };
   document.getElementById('modalNickname').value = myProfile.nickname || '';
   document.getElementById('modalRealName').value = myProfile.realName || '';
+
+  // 말풍선 메시지 초기화
+  modalBubbleMessages = JSON.parse(JSON.stringify(DEFAULT_BUBBLE_MSGS));
+  if (myProfile.bubbleMessages) {
+    for (const cat of Object.keys(DEFAULT_BUBBLE_MSGS)) {
+      if (Array.isArray(myProfile.bubbleMessages[cat])) {
+        modalBubbleMessages[cat] = [...myProfile.bubbleMessages[cat]];
+      }
+    }
+  }
+  modalBubbleCat = 'idle';
+  document.querySelectorAll('.modal-bubble-tab').forEach(t => {
+    t.style.borderColor = '#333'; t.style.background = '#16213e'; t.style.color = '#aaa';
+  });
+  document.querySelector('.modal-bubble-tab[data-cat="idle"]').style.borderColor = '#3498db';
+  document.querySelector('.modal-bubble-tab[data-cat="idle"]').style.background = '#1a3a6e';
+  document.querySelector('.modal-bubble-tab[data-cat="idle"]').style.color = 'white';
+  renderModalBubbleList();
 
   // 성별 버튼
   document.querySelectorAll('.modal-gender').forEach(b => {
@@ -1893,6 +1998,12 @@ document.getElementById('modalSave').addEventListener('click', async () => {
   myProfile.realName = realName;
   myProfile.gender = modalGender;
   myProfile.colors = { ...modalColors };
+  // 빈 문자열 메시지 제거 후 저장
+  const cleanBubble = {};
+  for (const cat of Object.keys(modalBubbleMessages)) {
+    cleanBubble[cat] = modalBubbleMessages[cat].filter(m => m.trim().length > 0);
+  }
+  myProfile.bubbleMessages = cleanBubble;
   await window.electronAPI.saveProfile(myProfile);
 
   // 내 스프라이트 갱신
