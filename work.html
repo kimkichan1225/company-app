@@ -480,13 +480,23 @@
   function showBubble(category) {
     const msgs = MESSAGES[category] || MESSAGES.idle;
     const msg = msgs[Math.floor(Math.random() * msgs.length)];
-    bubble.textContent = msg;
+    showBubbleText(msg, 2500);
+  }
+
+  // 직접 텍스트로 말풍선 표시
+  function showBubbleText(text, duration) {
+    bubble.textContent = text;
     bubble.classList.add('show');
     if (bubbleTimeout) clearTimeout(bubbleTimeout);
     bubbleTimeout = setTimeout(() => {
       bubble.classList.remove('show');
-    }, 2500);
+    }, duration || 2500);
   }
+
+  // 채팅 메시지 수신 시 말풍선 표시
+  window.electronAPI.onSocketEvent('chat-message', (data) => {
+    showBubbleText(`${data.nickname}: ${data.message}`, 4000);
+  });
 
   // 메인 루프
   let lastTime = -1;
