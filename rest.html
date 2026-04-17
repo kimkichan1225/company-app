@@ -1499,7 +1499,15 @@ async function connectServer() {
   });
 
   window.electronAPI.onSocketEvent('chat-history', (history) => {
-    for (const msg of history) addChatMsg(msg.nickname, msg.message);
+    // 재진입 시 기존 메시지 비우고 다시 로드 (중복 방지)
+    chatMessages.innerHTML = '';
+    for (const msg of history) {
+      if (msg.type === 'system' || msg.nickname === '__system__') {
+        addSystemMsg(msg.message);
+      } else {
+        addChatMsg(msg.nickname, msg.message);
+      }
+    }
   });
 
   window.electronAPI.onSocketEvent('chat-message', (data) => {

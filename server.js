@@ -35,6 +35,17 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    // 기존 테이블에 type 컬럼 추가 (시스템 메시지 구분용)
+    await pool.query(`
+      ALTER TABLE chat_history ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'user'
+    `);
+    // 점심 관련 메타데이터 (lastResultDate 등)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lunch_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    `);
     // 점심 메뉴 (slot 단위로 저장, 하루 단위로 reset)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS lunch_menus (
@@ -74,11 +85,11 @@ async function saveProfile(nickname, colors) {
 }
 
 // 채팅 저장
-async function saveChatMessage(nickname, message) {
+async function saveChatMessage(nickname, message, type = 'user') {
   try {
     await pool.query(
-      'INSERT INTO chat_history (nickname, message) VALUES ($1, $2)',
-      [nickname, message]
+      'INSERT INTO chat_history (nickname, message, type) VALUES ($1, $2, $3)',
+      [nickname, message, type]
     );
   } catch (err) {
     console.error('채팅 저장 실패:', err.message);
@@ -89,7 +100,7 @@ async function saveChatMessage(nickname, message) {
 async function getRecentChats(limit = 50) {
   try {
     const result = await pool.query(
-      'SELECT nickname, message, created_at FROM chat_history ORDER BY created_at DESC LIMIT $1',
+      'SELECT nickname, message, type, created_at FROM chat_history ORDER BY created_at DESC LIMIT $1',
       [limit]
     );
     return result.rows.reverse();
@@ -97,6 +108,23 @@ async function getRecentChats(limit = 50) {
     console.error('채팅 로드 실패:', err.message);
     return [];
   }
+}
+
+// 점심 메타 (lastResultDate 등)
+async function getMeta(key) {
+  try {
+    const r = await pool.query('SELECT value FROM lunch_meta WHERE key = $1', [key]);
+    return r.rows[0] ? r.rows[0].value : null;
+  } catch (err) { return null; }
+}
+
+async function setMeta(key, value) {
+  try {
+    await pool.query(`
+      INSERT INTO lunch_meta (key, value) VALUES ($1, $2)
+      ON CONFLICT (key) DO UPDATE SET value = $2
+    `, [key, value]);
+  } catch (err) { console.error('meta 저장 실패:', err.message); }
 }
 
 // ── 점심 메뉴/투표 DB 헬퍼 ──
@@ -268,7 +296,13 @@ function getRealNameForNick(nickname) {
   return voterRealNames.get(nickname) || nickname;
 }
 
-function announceLunchResult() {
+async function announceLunchResult() {
+  // 중복 발표 방지 (오늘 이미 발표했으면 skip)
+  const { dateStr } = getKSTParts();
+  if (lastResultDate === dateStr) return;
+  lastResultDate = dateStr;
+  await setMeta('last_result_date', dateStr);
+
   // 결과 집계 (nickname 기반)
   const tally = new Map(); // slotIdx → [{voterNick, voterRealName}]
   for (const [voterNick, slotIdx] of lunchVotes) {
@@ -308,6 +342,27 @@ function announceLunchResult() {
   };
   io.emit('lunch-result', payload);
   console.log('[점심] 결과 발표:', results.map(r => `${r.menuName}(${r.count})`).join(', '));
+
+  // 채팅 히스토리 DB에 저장 (나중에 접속한 사람도 확인 가능)
+  const lines = ['━━━━━━━━━━━━━━━', '🍚 점심 투표 결과 발표 (12:00)'];
+  if (results.length === 0 || results.every(r => r.count === 0)) {
+    lines.push('(투표한 사람이 없습니다)');
+  } else {
+    const medals = ['🥇', '🥈', '🥉'];
+    results.forEach((r, idx) => {
+      if (r.count === 0) return;
+      const prefix = medals[idx] || '・';
+      const names = (r.voterRealNames || []).join(', ');
+      lines.push(`${prefix} ${r.menuName} (${r.count}표): ${names}`);
+    });
+  }
+  if (noVoters.length > 0) {
+    lines.push(`미투표: ${noVoters.join(', ')}`);
+  }
+  lines.push('━━━━━━━━━━━━━━━');
+  for (const line of lines) {
+    await saveChatMessage('__system__', line, 'system');
+  }
 }
 
 // KST(Asia/Seoul) 기준 시간 얻기 (서버가 UTC라도 한국 시간으로 동작)
@@ -329,20 +384,21 @@ function getKSTParts() {
 }
 
 // 30초마다 KST 시간 체크
-setInterval(() => {
-  const { h, m, dateStr } = getKSTParts();
+setInterval(async () => {
+  const { h, dateStr } = getKSTParts();
 
-  // 00:00 — 초기화
-  if (h === 0 && m === 0 && lastResetDate !== dateStr) {
+  // 자정 이후 첫 체크에 초기화 (놓쳐도 복구)
+  if (lastResetDate !== dateStr) {
     lastResetDate = dateStr;
     lastResultDate = null; // 새 날이니 결과 플래그도 리셋
-    resetLunch('daily-00');
+    await setMeta('last_reset_date', dateStr);
+    await setMeta('last_result_date', '');
+    await resetLunch('daily-00');
   }
 
-  // 12:00 — 결과 발표
-  if (h === 12 && m === 0 && lastResultDate !== dateStr) {
-    lastResultDate = dateStr;
-    announceLunchResult();
+  // 12시 이후이고 오늘 아직 발표 안 했으면 발표 (놓쳐도 복구)
+  if (h >= 12 && lastResultDate !== dateStr) {
+    await announceLunchResult();
   }
 }, 30 * 1000);
 
@@ -442,7 +498,13 @@ io.on('connection', (socket) => {
     // 기존 유저 목록 전송
     socket.emit('users-list', Array.from(users.values()));
 
-    // 최근 채팅 기록 전송
+    // 12시 이후인데 오늘 아직 발표 안 했으면 지금 발표 (채팅 히스토리 보내기 전에)
+    const { h: nowH, dateStr: nowDate } = getKSTParts();
+    if (nowH >= 12 && lastResultDate !== nowDate) {
+      await announceLunchResult();
+    }
+
+    // 최근 채팅 기록 전송 (결과 발표 이후라 방금 저장한 결과도 포함됨)
     const recentChats = await getRecentChats(30);
     socket.emit('chat-history', recentChats);
 
@@ -588,9 +650,17 @@ io.on('connection', (socket) => {
   });
 
   // 유저 목록 재요청 (rest 재진입 시)
-  socket.on('request-users', () => {
+  socket.on('request-users', async () => {
+    // rest 재진입 시에도 발표 체크 (서버가 슬립 중 12시를 놓쳤을 수 있음)
+    const { h: nowH, dateStr: nowDate } = getKSTParts();
+    if (nowH >= 12 && lastResultDate !== nowDate) {
+      await announceLunchResult();
+    }
     socket.emit('users-list', Array.from(users.values()));
     socket.emit('lunch-state', buildLunchState());
+    // 채팅 히스토리 재전송 (work → rest 전환 시 누락 방지)
+    const recentChats = await getRecentChats(30);
+    socket.emit('chat-history', recentChats);
   });
 
   // 채팅
@@ -626,9 +696,18 @@ io.on('connection', (socket) => {
 });
 
 // 서버 시작
+async function loadMetaFromDB() {
+  lastResultDate = await getMeta('last_result_date') || null;
+  lastResetDate = await getMeta('last_reset_date') || null;
+  console.log(`[점심] meta 복원: lastResultDate=${lastResultDate}, lastResetDate=${lastResetDate}`);
+}
+
 const PORT = process.env.PORT || 3456;
-initDB().then(loadLunchFromDB).then(() => {
-  server.listen(PORT, () => {
-    console.log(`FitCharacter 서버 실행 중: http://localhost:${PORT}`);
+initDB()
+  .then(loadMetaFromDB)
+  .then(loadLunchFromDB)
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`FitCharacter 서버 실행 중: http://localhost:${PORT}`);
+    });
   });
-});
