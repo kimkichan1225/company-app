@@ -187,6 +187,7 @@
           <button class="gender-btn" id="btnNezuco" data-gender="nezuco">🎋 네즈코</button>
           <button class="gender-btn" id="btnCalcifer" data-gender="calcifer">🔥 캘시퍼</button>
           <button class="gender-btn" id="btnPantom" data-gender="pantom">👻 팬텀</button>
+          <button class="gender-btn" id="btnCat3" data-gender="cat3">🐾 고양이3</button>
         </div>
       </div>
 
@@ -407,7 +408,8 @@
     const isNezuco = gender === 'nezuco';
     const isCalcifer = gender === 'calcifer';
     const isPantom = gender === 'pantom';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom;
+    const isCat3 = gender === 'cat3';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -505,6 +507,42 @@
           cx.translate((c+1)*fw, 3*fh);
           cx.scale(-1, 1);
           cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isCat3) {
+        // 고양이3: row 3 col 0을 row 2 col 1/3에 복사 + row 3 (RIGHT) = row 2 프레임별 좌우반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        // row 3 col 0 백업
+        const tmp = document.createElement('canvas');
+        tmp.width = fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 0, 3*fh, fw, fh, 0, 0, fw, fh);
+        // row 2 col 1, col 3 ← row 3 col 0
+        cx.clearRect(1*fw, 2*fh, fw, fh);
+        cx.drawImage(tmp, 0, 0, fw, fh, 1*fw, 2*fh, fw, fh);
+        cx.clearRect(3*fw, 2*fh, fw, fh);
+        cx.drawImage(tmp, 0, 0, fw, fh, 3*fw, 2*fh, fw, fh);
+        // row 2 최종본 백업
+        const row2 = document.createElement('canvas');
+        row2.width = 4*fw; row2.height = fh;
+        const row2x = row2.getContext('2d');
+        row2x.imageSmoothingEnabled = false;
+        row2x.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        // row 3 (RIGHT) ← row 2 프레임별 좌우반전
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 3*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(row2, c*fw, 0, fw, fh, 0, 0, fw, fh);
           cx.restore();
         }
         const fixed = new Image();
