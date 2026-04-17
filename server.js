@@ -344,7 +344,7 @@ async function announceLunchResult() {
   console.log('[점심] 결과 발표:', results.map(r => `${r.menuName}(${r.count})`).join(', '));
 
   // 채팅 히스토리 DB에 저장 (나중에 접속한 사람도 확인 가능)
-  const lines = ['━━━━━━━━━━━━━━━', '🍚 점심 투표 결과 발표 (12:00)'];
+  const lines = ['━━━━━━━━━━━━━━━', '🍚 점심 투표 결과 발표 (11:59)'];
   if (results.length === 0 || results.every(r => r.count === 0)) {
     lines.push('(투표한 사람이 없습니다)');
   } else {
@@ -363,6 +363,14 @@ async function announceLunchResult() {
   for (const line of lines) {
     await saveChatMessage('__system__', line, 'system');
   }
+}
+
+// 발표 시각 기준 (KST 11:59 이후부터 발표 가능)
+const ANNOUNCE_HOUR = 11;
+const ANNOUNCE_MIN = 59;
+function isPastAnnounceTime() {
+  const { h, m } = getKSTParts();
+  return h * 60 + m >= ANNOUNCE_HOUR * 60 + ANNOUNCE_MIN;
 }
 
 // KST(Asia/Seoul) 기준 시간 얻기 (서버가 UTC라도 한국 시간으로 동작)
@@ -396,8 +404,8 @@ setInterval(async () => {
     await resetLunch('daily-00');
   }
 
-  // 12시 이후이고 오늘 아직 발표 안 했으면 발표 (놓쳐도 복구)
-  if (h >= 12 && lastResultDate !== dateStr) {
+  // 발표 시각(11:59) 이후이고 오늘 아직 발표 안 했으면 발표 (놓쳐도 복구)
+  if (isPastAnnounceTime() && lastResultDate !== dateStr) {
     await announceLunchResult();
   }
 }, 30 * 1000);
@@ -498,9 +506,9 @@ io.on('connection', (socket) => {
     // 기존 유저 목록 전송
     socket.emit('users-list', Array.from(users.values()));
 
-    // 12시 이후인데 오늘 아직 발표 안 했으면 지금 발표 (채팅 히스토리 보내기 전에)
-    const { h: nowH, dateStr: nowDate } = getKSTParts();
-    if (nowH >= 12 && lastResultDate !== nowDate) {
+    // 발표 시각(11:59) 이후인데 오늘 아직 발표 안 했으면 지금 발표 (채팅 히스토리 보내기 전에)
+    const { dateStr: nowDate } = getKSTParts();
+    if (isPastAnnounceTime() && lastResultDate !== nowDate) {
       await announceLunchResult();
     }
 
@@ -651,9 +659,9 @@ io.on('connection', (socket) => {
 
   // 유저 목록 재요청 (rest 재진입 시)
   socket.on('request-users', async () => {
-    // rest 재진입 시에도 발표 체크 (서버가 슬립 중 12시를 놓쳤을 수 있음)
-    const { h: nowH, dateStr: nowDate } = getKSTParts();
-    if (nowH >= 12 && lastResultDate !== nowDate) {
+    // rest 재진입 시에도 발표 체크 (서버가 슬립 중 발표 시각을 놓쳤을 수 있음)
+    const { dateStr: nowDate } = getKSTParts();
+    if (isPastAnnounceTime() && lastResultDate !== nowDate) {
       await announceLunchResult();
     }
     socket.emit('users-list', Array.from(users.values()));

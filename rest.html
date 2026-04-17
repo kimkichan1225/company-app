@@ -1691,16 +1691,16 @@ function escapeHtml(s) {
   }[c]));
 }
 
-// 12시까지 남은 시간 표시
+// 11:59까지 남은 시간 표시
 function updateLunchCountdown() {
   const el = document.getElementById('lunchCountdown');
   if (!el) return;
   const now = new Date();
   const target = new Date(now);
-  target.setHours(12, 0, 0, 0);
+  target.setHours(11, 59, 0, 0);
   let diff = target - now;
   if (diff < 0) {
-    // 12시 지났으면 내일 00시까지
+    // 발표 시각 지났으면 내일 00시까지
     target.setDate(target.getDate() + 1);
     target.setHours(0, 0, 0, 0);
     diff = target - now;
@@ -1724,7 +1724,7 @@ renderLunchUI();
 function showLunchResult(payload) {
   if (!payload || !Array.isArray(payload.results)) return;
   addSystemMsg('━━━━━━━━━━━━━━━');
-  addSystemMsg('🍚 점심 투표 결과 발표 (12:00)');
+  addSystemMsg('🍚 점심 투표 결과 발표 (11:59)');
   const results = payload.results;
   const medals = ['🥇', '🥈', '🥉'];
   if (results.length === 0 || results.every(r => r.count === 0)) {
