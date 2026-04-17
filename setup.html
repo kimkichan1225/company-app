@@ -188,6 +188,7 @@
           <button class="gender-btn" id="btnCalcifer" data-gender="calcifer">🔥 캘시퍼</button>
           <button class="gender-btn" id="btnPantom" data-gender="pantom">👻 팬텀</button>
           <button class="gender-btn" id="btnCat3" data-gender="cat3">🐾 고양이3</button>
+          <button class="gender-btn" id="btnDuck" data-gender="duck">🦆 오리</button>
         </div>
       </div>
 
@@ -409,7 +410,8 @@
     const isCalcifer = gender === 'calcifer';
     const isPantom = gender === 'pantom';
     const isCat3 = gender === 'cat3';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3;
+    const isDuck = gender === 'duck';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -507,6 +509,42 @@
           cx.translate((c+1)*fw, 3*fh);
           cx.scale(-1, 1);
           cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isDuck) {
+        // 오리: row 1 col 2 ← row 1 col 0 / row 2 col 0,2 ← flipped(orig row 3 col 1) / row 3 = modified row 2 프레임별 좌우반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        cx.clearRect(2*fw, 1*fh, fw, fh);
+        cx.drawImage(img, 0, 1*fh, fw, fh, 2*fw, 1*fh, fw, fh);
+        const flippedR3C1 = document.createElement('canvas');
+        flippedR3C1.width = fw; flippedR3C1.height = fh;
+        const frc = flippedR3C1.getContext('2d');
+        frc.imageSmoothingEnabled = false;
+        frc.save(); frc.translate(fw, 0); frc.scale(-1, 1);
+        frc.drawImage(img, 1*fw, 3*fh, fw, fh, 0, 0, fw, fh);
+        frc.restore();
+        cx.clearRect(0, 2*fh, fw, fh);
+        cx.drawImage(flippedR3C1, 0, 2*fh);
+        cx.clearRect(2*fw, 2*fh, fw, fh);
+        cx.drawImage(flippedR3C1, 2*fw, 2*fh);
+        const row2backup = document.createElement('canvas');
+        row2backup.width = 4*fw; row2backup.height = fh;
+        const r2b = row2backup.getContext('2d');
+        r2b.imageSmoothingEnabled = false;
+        r2b.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 3*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(row2backup, c*fw, 0, fw, fh, 0, 0, fw, fh);
           cx.restore();
         }
         const fixed = new Image();
