@@ -35,6 +35,25 @@ async function initDB() {
         created_at TIMESTAMP DEFAULT NOW()
       )
     `);
+    // 점심 메뉴 (slot 단위로 저장, 하루 단위로 reset)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lunch_menus (
+        slot_index INT PRIMARY KEY,
+        name TEXT NOT NULL,
+        owner_nick TEXT NOT NULL,
+        owner_real_name TEXT,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
+    // 점심 투표 (voter_nick이 PK — 1인 1투표)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lunch_votes (
+        voter_nick TEXT PRIMARY KEY,
+        voter_real_name TEXT,
+        slot_index INT NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      )
+    `);
     console.log('DB 테이블 초기화 완료');
   } catch (err) {
     console.error('DB 초기화 실패:', err.message);
@@ -78,6 +97,106 @@ async function getRecentChats(limit = 50) {
     console.error('채팅 로드 실패:', err.message);
     return [];
   }
+}
+
+// ── 점심 메뉴/투표 DB 헬퍼 ──
+async function dbUpsertMenu(slot, name, ownerNick, ownerRealName) {
+  try {
+    await pool.query(`
+      INSERT INTO lunch_menus (slot_index, name, owner_nick, owner_real_name)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (slot_index) DO UPDATE SET name = $2, owner_nick = $3, owner_real_name = $4
+    `, [slot, name, ownerNick, ownerRealName]);
+  } catch (err) { console.error('메뉴 저장 실패:', err.message); }
+}
+
+async function dbDeleteMenu(slot) {
+  try {
+    await pool.query('DELETE FROM lunch_menus WHERE slot_index = $1', [slot]);
+  } catch (err) { console.error('메뉴 삭제 실패:', err.message); }
+}
+
+async function dbUpsertVote(voterNick, voterRealName, slotIdx) {
+  try {
+    await pool.query(`
+      INSERT INTO lunch_votes (voter_nick, voter_real_name, slot_index)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (voter_nick) DO UPDATE SET voter_real_name = $2, slot_index = $3, created_at = NOW()
+    `, [voterNick, voterRealName, slotIdx]);
+  } catch (err) { console.error('투표 저장 실패:', err.message); }
+}
+
+async function dbDeleteVote(voterNick) {
+  try {
+    await pool.query('DELETE FROM lunch_votes WHERE voter_nick = $1', [voterNick]);
+  } catch (err) { console.error('투표 삭제 실패:', err.message); }
+}
+
+async function dbDeleteVotesBySlot(slotIdx) {
+  try {
+    await pool.query('DELETE FROM lunch_votes WHERE slot_index = $1', [slotIdx]);
+  } catch (err) { console.error('슬롯 투표 삭제 실패:', err.message); }
+}
+
+async function dbClearLunch() {
+  try {
+    await pool.query('DELETE FROM lunch_menus');
+    await pool.query('DELETE FROM lunch_votes');
+  } catch (err) { console.error('점심 데이터 초기화 실패:', err.message); }
+}
+
+// 서버 시작 시 DB에서 메뉴/투표 복원 (자정 넘었으면 폐기)
+async function loadLunchFromDB() {
+  try {
+    const { dateStr: todayKST } = getKSTParts();
+    // 오늘(KST) 생성된 데이터만 로드. 이전 날 데이터는 DB에서 정리.
+    const menuRes = await pool.query(`
+      SELECT slot_index, name, owner_nick, owner_real_name, created_at
+      FROM lunch_menus
+    `);
+    let staleFound = false;
+    for (const row of menuRes.rows) {
+      const rowDate = formatKSTDate(row.created_at);
+      if (rowDate !== todayKST) { staleFound = true; continue; }
+      lunchMenus.set(row.slot_index, {
+        name: row.name,
+        ownerNick: row.owner_nick,
+        ownerRealName: row.owner_real_name,
+      });
+    }
+    const voteRes = await pool.query(`
+      SELECT voter_nick, voter_real_name, slot_index, created_at
+      FROM lunch_votes
+    `);
+    for (const row of voteRes.rows) {
+      const rowDate = formatKSTDate(row.created_at);
+      if (rowDate !== todayKST) { staleFound = true; continue; }
+      // 메뉴가 이미 폐기된 슬롯에 대한 투표면 스킵
+      if (!lunchMenus.has(row.slot_index)) continue;
+      lunchVotes.set(row.voter_nick, row.slot_index);
+      if (row.voter_real_name) voterRealNames.set(row.voter_nick, row.voter_real_name);
+    }
+    // 어제 이전 데이터 정리
+    if (staleFound) {
+      await pool.query(`
+        DELETE FROM lunch_menus WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date < (NOW() AT TIME ZONE 'Asia/Seoul')::date
+      `);
+      await pool.query(`
+        DELETE FROM lunch_votes WHERE (created_at AT TIME ZONE 'Asia/Seoul')::date < (NOW() AT TIME ZONE 'Asia/Seoul')::date
+      `);
+    }
+    console.log(`[점심] DB에서 복원: 메뉴 ${lunchMenus.size}개, 투표 ${lunchVotes.size}개`);
+  } catch (err) {
+    console.error('점심 데이터 로드 실패:', err.message);
+  }
+}
+
+function formatKSTDate(dt) {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  });
+  return fmt.format(new Date(dt));
 }
 
 // ── 접속 중인 유저 관리 (메모리) ──
@@ -131,10 +250,11 @@ function broadcastLunchState() {
   io.emit('lunch-state', buildLunchState());
 }
 
-function resetLunch(reason = 'reset') {
+async function resetLunch(reason = 'reset') {
   lunchMenus.clear();
   lunchVotes.clear();
   voterRealNames.clear();
+  await dbClearLunch();
   io.emit('lunch-reset', { reason });
   broadcastLunchState();
   console.log(`[점심] 초기화 (${reason})`);
@@ -335,7 +455,7 @@ io.on('connection', (socket) => {
   });
 
   // 점심 메뉴 등록 (1인 1개, nickname 기반)
-  socket.on('menu-register', (payload) => {
+  socket.on('menu-register', async (payload) => {
     const user = users.get(socket.id);
     if (!user) return;
     const name = typeof payload === 'string' ? payload : (payload && payload.name);
@@ -349,6 +469,7 @@ io.on('connection', (socket) => {
       const m = lunchMenus.get(existingSlot);
       m.name = trimmed;
       m.ownerRealName = user.realName || user.nickname;
+      await dbUpsertMenu(existingSlot, m.name, m.ownerNick, m.ownerRealName);
       broadcastLunchState();
       return;
     }
@@ -358,16 +479,18 @@ io.on('connection', (socket) => {
       socket.emit('menu-error', { message: '메뉴가 가득 찼습니다 (최대 6개)' });
       return;
     }
+    const ownerRealName = user.realName || user.nickname;
     lunchMenus.set(slot, {
       name: trimmed,
       ownerNick: user.nickname,
-      ownerRealName: user.realName || user.nickname,
+      ownerRealName,
     });
+    await dbUpsertMenu(slot, trimmed, user.nickname, ownerRealName);
     broadcastLunchState();
   });
 
   // 점심 메뉴 등록 취소
-  socket.on('menu-unregister', () => {
+  socket.on('menu-unregister', async () => {
     const user = users.get(socket.id);
     if (!user) return;
     const slot = getOwnerSlotByNick(user.nickname);
@@ -377,11 +500,13 @@ io.on('connection', (socket) => {
     for (const [voterNick, slotIdx] of lunchVotes) {
       if (slotIdx === slot) lunchVotes.delete(voterNick);
     }
+    await dbDeleteMenu(slot);
+    await dbDeleteVotesBySlot(slot);
     broadcastLunchState();
   });
 
   // 투표 (nickname 기반 — 앱 껐다 켜도 유지)
-  socket.on('vote', (payload) => {
+  socket.on('vote', async (payload) => {
     const user = users.get(socket.id);
     if (!user) return;
     const slotIdx = typeof payload === 'number' ? payload : (payload && payload.slotIndex);
@@ -389,14 +514,18 @@ io.on('connection', (socket) => {
     if (!lunchMenus.has(slotIdx)) return;
     lunchVotes.set(user.nickname, slotIdx);
     if (user.realName) voterRealNames.set(user.nickname, user.realName);
+    await dbUpsertVote(user.nickname, user.realName || user.nickname, slotIdx);
     broadcastLunchState();
   });
 
   // 투표 취소
-  socket.on('vote-cancel', () => {
+  socket.on('vote-cancel', async () => {
     const user = users.get(socket.id);
     if (!user) return;
-    if (lunchVotes.delete(user.nickname)) broadcastLunchState();
+    if (lunchVotes.delete(user.nickname)) {
+      await dbDeleteVote(user.nickname);
+      broadcastLunchState();
+    }
   });
 
   // 위치 업데이트
@@ -498,7 +627,7 @@ io.on('connection', (socket) => {
 
 // 서버 시작
 const PORT = process.env.PORT || 3456;
-initDB().then(() => {
+initDB().then(loadLunchFromDB).then(() => {
   server.listen(PORT, () => {
     console.log(`FitCharacter 서버 실행 중: http://localhost:${PORT}`);
   });
