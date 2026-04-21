@@ -330,7 +330,7 @@ $btnRestart.Add_Click({
   Write-Result 'success' $null $true
   # explorer.exe를 통해 띄워 PS의 job object와 분리
   # (Start-Process는 PS의 job을 상속해 PS 창을 닫으면 자식 앱도 함께 죽는 문제 회피)
-  try { [System.Diagnostics.Process]::Start('explorer.exe', "`"$exePath`"") | Out-Null } catch {}
+  try { [System.Diagnostics.Process]::Start('explorer.exe', '"' + $exePath + '"') | Out-Null } catch {}
   # WinForms/메시지 루프 정리 대기 없이 즉시 PS 프로세스 종료
   [Environment]::Exit(0)
 })
