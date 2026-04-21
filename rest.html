@@ -260,6 +260,7 @@
               <button class="modal-gender" data-g="pantom" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">👻 팬텀</button>
               <button class="modal-gender" data-g="cat3" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">🐾 고양이3</button>
               <button class="modal-gender" data-g="duck" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">🦆 오리</button>
+              <button class="modal-gender" data-g="man" style="padding:6px 4px;border:2px solid #333;border-radius:6px;background:#16213e;color:#aaa;font-size:11px;cursor:pointer;white-space:nowrap;">🧔 남자2</button>
             </div>
           </div>
           <div>
@@ -1881,6 +1882,7 @@ async function init() {
   svgByGender.pantom = await window.electronAPI.readSVG('pantom');
   svgByGender.cat3 = await window.electronAPI.readSVG('cat3');
   svgByGender.duck = await window.electronAPI.readSVG('duck');
+  svgByGender.man = await window.electronAPI.readSVG('man');
   originalSVG = svgByGender[myProfile.gender || 'boy'];
   mySpriteImg = await createSpriteImage(originalSVG, myProfile.colors, { isPikachu: myProfile.gender === 'pikachu', isPsyduck: myProfile.gender === 'psyduck', isCat: myProfile.gender === 'cat', isSprigatito: myProfile.gender === 'sprigatito', isSlime: myProfile.gender === 'slime', isCat2: myProfile.gender === 'cat2', isRabbit: myProfile.gender === 'rabbit', isNezuco: myProfile.gender === 'nezuco', isCalcifer: myProfile.gender === 'calcifer', isPantom: myProfile.gender === 'pantom', isCat3: myProfile.gender === 'cat3', isDuck: myProfile.gender === 'duck' });
 
