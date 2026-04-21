@@ -329,7 +329,8 @@ $btnRestart.Add_Click({
   # 자동 실행 플래그 기록 → Electron 측 "업데이트 완료" 다이얼로그 생략
   Write-Result 'success' $null $true
   try { Start-Process -FilePath $exePath } catch {}
-  $form.Close()
+  # WinForms/메시지 루프 정리 대기 없이 즉시 PS 프로세스 종료
+  [Environment]::Exit(0)
 })
 $form.Controls.Add($btnRestart)
 
@@ -437,6 +438,9 @@ try {
   Start-Sleep -Seconds 10
   $form.Close()
 }
+
+# WinForms/메시지 루프 정리 대기 없이 즉시 PS 프로세스 종료
+[Environment]::Exit(0)
 `;
 
     // UTF-8 BOM 포함으로 저장 → PowerShell이 한글 경로를 정확히 읽음
