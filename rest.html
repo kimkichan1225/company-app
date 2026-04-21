@@ -1265,51 +1265,39 @@ let manualControl = false;
 // ══════════════════════════════════════
 const SLEEP_IDLE_MS = 60 * 1000;
 const SLEEP_Z_TEXTS = ['z', 'zz', 'zzz', 'zzz.', 'zzz..', 'zzz...'];
-const SLEEP_Z_LIFE_MS = 2500;
-const SLEEP_Z_SPAWN_MS = 1200;
+const SLEEP_BUBBLE_CYCLE_MS = 500;
 let lastActivity = Date.now();
 let isMinimized = false;
-let sleepZs = [];
-let lastZSpawn = 0;
-let zTextIndex = 0;
 
 function isSleeping() {
   return isMinimized || (Date.now() - lastActivity > SLEEP_IDLE_MS);
 }
 
-function updateSleepZs(now) {
-  if (isSleeping() && now - lastZSpawn >= SLEEP_Z_SPAWN_MS) {
-    sleepZs.push({
-      spawnTime: now,
-      text: SLEEP_Z_TEXTS[zTextIndex % SLEEP_Z_TEXTS.length],
-      swayPhase: Math.random() * Math.PI * 2,
-    });
-    zTextIndex++;
-    lastZSpawn = now;
-  }
-  sleepZs = sleepZs.filter(z => now - z.spawnTime < SLEEP_Z_LIFE_MS);
-}
-
-function drawSleepZs(charX, charY) {
-  if (sleepZs.length === 0) return;
+function drawSleepBubble(charX, charY) {
+  if (!isSleeping()) return;
+  const idx = Math.floor(Date.now() / SLEEP_BUBBLE_CYCLE_MS) % SLEEP_Z_TEXTS.length;
+  const text = SLEEP_Z_TEXTS[idx];
   const cx = charX + CHAR_W / 2;
-  const now = Date.now();
+
+  ctx.font = '9px Segoe UI';
+  const tw = ctx.measureText(text).width;
+  const bw = tw + 10, bh = 16;
+  const bx = cx - bw / 2, by = charY - 32;
+
+  ctx.fillStyle = 'white';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 4);
+  ctx.fill();
+  // 꼬리
+  ctx.beginPath();
+  ctx.moveTo(cx - 3, by + bh);
+  ctx.lineTo(cx, by + bh + 4);
+  ctx.lineTo(cx + 3, by + bh);
+  ctx.fill();
+
+  ctx.fillStyle = '#333';
   ctx.textAlign = 'center';
-  for (const z of sleepZs) {
-    const age = now - z.spawnTime;
-    const t = age / SLEEP_Z_LIFE_MS;
-    const sway = Math.sin(z.swayPhase + age * 0.005) * 5;
-    const x = cx + sway;
-    const y = charY - 8 - t * 26;
-    const size = 9 + t * 6;
-    const alpha = Math.max(0, 1 - t);
-    ctx.font = `600 ${size.toFixed(1)}px Segoe UI`;
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = `rgba(0, 0, 0, ${(alpha * 0.7).toFixed(2)})`;
-    ctx.strokeText(z.text, x, y);
-    ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
-    ctx.fillText(z.text, x, y);
-  }
+  ctx.fillText(text, cx, by + 11);
 }
 
 function bumpActivity() { lastActivity = Date.now(); }
@@ -1436,8 +1424,7 @@ function gameLoop() {
   drawQueueGhosts();
   drawPeers();
   if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, myWalking, myFrameIndex, myProfile.nickname, '', '__me', myProfile.gender);
-  updateSleepZs(Date.now());
-  drawSleepZs(myX, myY);
+  drawSleepBubble(myX, myY);
   requestAnimationFrame(gameLoop);
 }
 
