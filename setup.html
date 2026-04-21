@@ -192,6 +192,7 @@
           <button class="gender-btn" id="btnMan" data-gender="man">🧔 남자2</button>
           <button class="gender-btn" id="btnGirl2" data-gender="girl2">💜 여자2</button>
           <button class="gender-btn" id="btnKnight" data-gender="knight">⚔️ 기사</button>
+          <button class="gender-btn" id="btnRobot" data-gender="robot">🤖 로봇</button>
         </div>
       </div>
 
@@ -415,7 +416,8 @@
     const isCat3 = gender === 'cat3';
     const isDuck = gender === 'duck';
     const isKnight = gender === 'knight';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight;
+    const isRobot = gender === 'robot';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -513,6 +515,49 @@
           cx.translate((c+1)*fw, 3*fh);
           cx.scale(-1, 1);
           cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isRobot) {
+        // 로봇:
+        // - row 0 col 3 ← flipped(row 0 col 1)
+        // - row 1 col 3 ← flipped(row 1 col 1)
+        // - row 2 col 2 ← row 2 col 0
+        // - row 3 = 수정된 row 2를 프레임별 좌우반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        // row 0 col 3 ← flipped(row 0 col 1), row 1 col 3 ← flipped(row 1 col 1)
+        for (const r of [0, 1]) {
+          const frameCv = document.createElement('canvas');
+          frameCv.width = fw; frameCv.height = fh;
+          const frameCx = frameCv.getContext('2d');
+          frameCx.imageSmoothingEnabled = false;
+          frameCx.save(); frameCx.translate(fw, 0); frameCx.scale(-1, 1);
+          frameCx.drawImage(cv, 1*fw, r*fh, fw, fh, 0, 0, fw, fh);
+          frameCx.restore();
+          cx.clearRect(3*fw, r*fh, fw, fh);
+          cx.drawImage(frameCv, 0, 0, fw, fh, 3*fw, r*fh, fw, fh);
+        }
+        // row 2 col 2 ← row 2 col 0
+        cx.clearRect(2*fw, 2*fh, fw, fh);
+        cx.drawImage(cv, 0, 2*fh, fw, fh, 2*fw, 2*fh, fw, fh);
+        // row 3 = 수정된 row 2 각 프레임 좌우반전
+        const row2backup = document.createElement('canvas');
+        row2backup.width = 4*fw; row2backup.height = fh;
+        const r2b = row2backup.getContext('2d');
+        r2b.imageSmoothingEnabled = false;
+        r2b.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 3*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(row2backup, c*fw, 0, fw, fh, 0, 0, fw, fh);
           cx.restore();
         }
         const fixed = new Image();
