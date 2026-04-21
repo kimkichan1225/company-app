@@ -288,7 +288,7 @@
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
       } else if (isRobot) {
-        // 로봇: row 0/1 col 3 ← flipped(col 1), row 2 col 2 ← col 0, row 3 = 수정된 row 2 좌우반전
+        // 로봇: row 3 (RIGHT) = 원본 row 2 (이미 right), row 2 (LEFT) = 수정된 row 2 좌우반전
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');
@@ -313,9 +313,11 @@
         r2b.imageSmoothingEnabled = false;
         r2b.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
         cx.clearRect(0, 3*fh, 4*fw, fh);
+        cx.drawImage(row2backup, 0, 0, 4*fw, fh, 0, 3*fh, 4*fw, fh);
+        cx.clearRect(0, 2*fh, 4*fw, fh);
         for (let c = 0; c < 4; c++) {
           cx.save();
-          cx.translate((c+1)*fw, 3*fh);
+          cx.translate((c+1)*fw, 2*fh);
           cx.scale(-1, 1);
           cx.drawImage(row2backup, c*fw, 0, fw, fh, 0, 0, fw, fh);
           cx.restore();
