@@ -184,6 +184,8 @@ async function handlePreviousUpdateResult() {
   clearUpdateResult();
 
   if (result.status === 'success') {
+    // PS의 "재실행" 버튼으로 자동 시작된 경우엔 PS 화면에서 이미 완료를 확인했으므로 다이얼로그 생략
+    if (result.launched) return;
     await dialog.showMessageBox({
       type: 'info',
       title: '업데이트 완료',
@@ -270,7 +272,7 @@ Add-Type -AssemblyName System.Drawing
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = 'FitCharacter 업데이트'
-$form.Size = New-Object System.Drawing.Size(470, 200)
+$form.Size = New-Object System.Drawing.Size(470, 240)
 $form.StartPosition = 'CenterScreen'
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
@@ -304,12 +306,46 @@ $bar.Value = 0
 $form.Controls.Add($bar)
 
 $hint = New-Object System.Windows.Forms.Label
-$hint.Text = '설치 완료 후 이 창이 자동으로 닫힙니다. 닫지 마세요.'
+$hint.Text = '설치 중입니다. 창을 닫지 마세요.'
 $hint.Font = New-Object System.Drawing.Font('Segoe UI', 8)
 $hint.ForeColor = [System.Drawing.Color]::FromArgb(140, 160, 190)
 $hint.Location = New-Object System.Drawing.Point(20, 128)
 $hint.Size = New-Object System.Drawing.Size(430, 20)
 $form.Controls.Add($hint)
+
+# 완료 후 표시될 버튼들 (초기엔 숨김)
+$btnRestart = New-Object System.Windows.Forms.Button
+$btnRestart.Text = '재실행'
+$btnRestart.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
+$btnRestart.Location = New-Object System.Drawing.Point(240, 158)
+$btnRestart.Size = New-Object System.Drawing.Size(100, 32)
+$btnRestart.FlatStyle = 'Flat'
+$btnRestart.FlatAppearance.BorderSize = 0
+$btnRestart.BackColor = [System.Drawing.Color]::FromArgb(46, 204, 113)
+$btnRestart.ForeColor = [System.Drawing.Color]::White
+$btnRestart.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnRestart.Visible = $false
+$btnRestart.Add_Click({
+  # 자동 실행 플래그 기록 → Electron 측 "업데이트 완료" 다이얼로그 생략
+  Write-Result 'success' $null $true
+  try { Start-Process -FilePath $exePath } catch {}
+  $form.Close()
+})
+$form.Controls.Add($btnRestart)
+
+$btnClose = New-Object System.Windows.Forms.Button
+$btnClose.Text = '확인'
+$btnClose.Font = New-Object System.Drawing.Font('Segoe UI', 9)
+$btnClose.Location = New-Object System.Drawing.Point(350, 158)
+$btnClose.Size = New-Object System.Drawing.Size(100, 32)
+$btnClose.FlatStyle = 'Flat'
+$btnClose.FlatAppearance.BorderSize = 0
+$btnClose.BackColor = [System.Drawing.Color]::FromArgb(85, 85, 105)
+$btnClose.ForeColor = [System.Drawing.Color]::White
+$btnClose.Cursor = [System.Windows.Forms.Cursors]::Hand
+$btnClose.Visible = $false
+$btnClose.Add_Click({ $form.Close() })
+$form.Controls.Add($btnClose)
 
 function Update-UI($value, $text) {
   $bar.Value = [Math]::Min(100, [Math]::Max(0, $value))
@@ -322,11 +358,12 @@ function Write-Log($msg) {
   Add-Content -Path $logPath -Value "[$ts] $msg" -Encoding UTF8
 }
 
-function Write-Result($st, $err) {
+function Write-Result($st, $err, $launched = $false) {
   $obj = [ordered]@{
     status = $st
     version = $targetVer
     error = $err
+    launched = $launched
     time = (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
   }
   ($obj | ConvertTo-Json -Compress) | Out-File -FilePath $resultPath -Encoding UTF8 -Force
@@ -386,14 +423,21 @@ try {
   Update-UI 100 '업데이트 완료!'
   $title.Text = '✓ 업데이트 완료'
   $title.ForeColor = [System.Drawing.Color]::FromArgb(46, 204, 113)
-  $hint.Text = 'FitCharacter를 다시 실행해주세요. 3초 후 창이 자동으로 닫힙니다.'
+  $hint.Text = '재실행을 누르면 새 버전으로 자동 시작됩니다.'
+  $btnRestart.Visible = $true
+  $btnClose.Visible = $true
   [System.Windows.Forms.Application]::DoEvents()
 
   Write-Log 'Update complete'
   Write-Result 'success' $null
 
-  Start-Sleep -Seconds 3
-  $form.Close()
+  # 사용자가 버튼을 누를 때까지 대기 (DoEvents 루프)
+  $script:closed = $false
+  $form.Add_FormClosed({ $script:closed = $true })
+  while (-not $script:closed) {
+    [System.Windows.Forms.Application]::DoEvents()
+    Start-Sleep -Milliseconds 50
+  }
 } catch {
   Write-Log "FATAL: $($_.Exception.Message)"
   Write-Result 'failed' $_.Exception.Message
@@ -418,7 +462,7 @@ try {
       type: 'info',
       title: '설치 준비 완료',
       message: '업데이트 파일이 준비되었습니다.',
-      detail: '"확인"을 누르면 앱이 종료됩니다.\n\n별도 진행 상황 창이 열려 설치를 진행하고\n완료되면 자동으로 닫힙니다.\n\n설치 후 FitCharacter를 다시 실행해주세요.',
+      detail: '"확인"을 누르면 앱이 종료됩니다.\n\n별도 진행 상황 창이 열려 설치를 진행하고,\n완료되면 [재실행] 버튼으로 새 버전을 바로 시작할 수 있습니다.',
       buttons: ['확인'],
     });
 
