@@ -419,11 +419,6 @@ function getQueuePosition(slotIdx, orderIdx) {
 }
 
 // ══════════════════════════════════════
-// 구역 정의 (자동 이동 영역: 라운지 전체)
-// ══════════════════════════════════════
-const LOUNGE_ZONE = { minC: 1, minR: 1, maxC: 27, maxR: 17 };
-
-// ══════════════════════════════════════
 // 캔버스 & 타일 그리기
 // ══════════════════════════════════════
 const canvas = document.getElementById('mapCanvas');
@@ -1259,30 +1254,65 @@ function drawCharacter(img, x, y, dir, walking, frameIdx, nickname, status, id, 
 }
 
 // ══════════════════════════════════════
-// 자동 이동
+// 이동 상태
 // ══════════════════════════════════════
-let autoTarget = null, autoIdle = 0, autoIdleDuration = 0;
+let autoTarget = null;
 let goingToDesk = false, sittingAtDesk = false, deskTarget = null, deskTargetIndex = -1;
 let manualControl = false;
 
-function pickAutoTarget() {
-  for (let tries = 0; tries < 50; tries++) {
-    const zone = LOUNGE_ZONE;
-    const c = zone.minC + Math.floor(Math.random() * (zone.maxC - zone.minC));
-    const r = zone.minR + Math.floor(Math.random() * (zone.maxR - zone.minR));
-    if (canMove(c * TILE + 2, r * TILE - 10)) {
-      autoTarget = { x: c * TILE + 2, y: r * TILE - 10 };
-      return;
-    }
-  }
-  autoTarget = null;
+// ══════════════════════════════════════
+// 자고 있는 효과 (창 최소화 또는 60초 입력 없음)
+// ══════════════════════════════════════
+const SLEEP_IDLE_MS = 60 * 1000;
+const SLEEP_Z_TEXTS = ['z', 'zz', 'zzz', 'zzz.', 'zzz..', 'zzz...'];
+const SLEEP_Z_LIFE_MS = 2500;
+const SLEEP_Z_SPAWN_MS = 1200;
+let lastActivity = Date.now();
+let isMinimized = false;
+let sleepZs = [];
+let lastZSpawn = 0;
+let zTextIndex = 0;
+
+function isSleeping() {
+  return isMinimized || (Date.now() - lastActivity > SLEEP_IDLE_MS);
 }
 
-function pickAutoIdle() {
-  autoTarget = null;
-  autoIdle = 0;
-  autoIdleDuration = 120 + Math.floor(Math.random() * 180);
+function updateSleepZs(now) {
+  if (isSleeping() && now - lastZSpawn >= SLEEP_Z_SPAWN_MS) {
+    sleepZs.push({
+      spawnTime: now,
+      text: SLEEP_Z_TEXTS[zTextIndex % SLEEP_Z_TEXTS.length],
+      swayPhase: Math.random() * Math.PI * 2,
+    });
+    zTextIndex++;
+    lastZSpawn = now;
+  }
+  sleepZs = sleepZs.filter(z => now - z.spawnTime < SLEEP_Z_LIFE_MS);
 }
+
+function drawSleepZs(charX, charY) {
+  if (sleepZs.length === 0) return;
+  const cx = charX + CHAR_W / 2;
+  const now = Date.now();
+  ctx.textAlign = 'center';
+  for (const z of sleepZs) {
+    const age = now - z.spawnTime;
+    const t = age / SLEEP_Z_LIFE_MS;
+    const sway = Math.sin(z.swayPhase + age * 0.005) * 5;
+    const x = cx + sway;
+    const y = charY - 8 - t * 26;
+    const size = 9 + t * 6;
+    const alpha = Math.max(0, 1 - t);
+    ctx.font = `600 ${size.toFixed(1)}px Segoe UI`;
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = `rgba(0, 0, 0, ${(alpha * 0.7).toFixed(2)})`;
+    ctx.strokeText(z.text, x, y);
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha.toFixed(2)})`;
+    ctx.fillText(z.text, x, y);
+  }
+}
+
+function bumpActivity() { lastActivity = Date.now(); }
 
 // 좌석 관련 (총 20자리: 5줄 × 4자리)
 const SEAT_POSITIONS = [
@@ -1326,8 +1356,6 @@ function startGoingToDesk() {
   deskTargetIndex = idx;
   autoTarget = null;
 }
-
-pickAutoTarget();
 
 // ══════════════════════════════════════
 // 게임 루프
@@ -1377,15 +1405,10 @@ function gameLoop() {
     if (keysDown.has('ArrowRight')) dx += SPEED;
     if (keysDown.has('ArrowUp'))    dy -= SPEED;
     if (keysDown.has('ArrowDown'))  dy += SPEED;
-  } else {
-    if (autoTarget) {
-      const distX = autoTarget.x - myX, distY = autoTarget.y - myY;
-      if (Math.sqrt(distX*distX + distY*distY) < SPEED * 2) { pickAutoIdle(); }
-      else { dx = Math.sign(distX)*Math.min(SPEED,Math.abs(distX)); dy = Math.sign(distY)*Math.min(SPEED,Math.abs(distY)); }
-    } else {
-      autoIdle++;
-      if (autoIdle >= autoIdleDuration) pickAutoTarget();
-    }
+  } else if (autoTarget) {
+    const distX = autoTarget.x - myX, distY = autoTarget.y - myY;
+    if (Math.sqrt(distX*distX + distY*distY) < SPEED * 2) { autoTarget = null; }
+    else { dx = Math.sign(distX)*Math.min(SPEED,Math.abs(distX)); dy = Math.sign(distY)*Math.min(SPEED,Math.abs(distY)); }
   }
 
   myWalking = (dx !== 0 || dy !== 0);
@@ -1395,11 +1418,11 @@ function gameLoop() {
   const skipCollision = goingToDesk;
   if (dx !== 0) {
     if (skipCollision || canMove(myX+dx, myY)) myX += dx;
-    else if (!manualControl && !goingToDesk) pickAutoTarget();
+    else if (autoTarget) autoTarget = null;
   }
   if (dy !== 0) {
     if (skipCollision || canMove(myX, myY+dy)) myY += dy;
-    else if (!manualControl && !goingToDesk) pickAutoTarget();
+    else if (autoTarget) autoTarget = null;
   }
 
   if (frameCounter % 8 === 0 && myWalking) myFrameIndex++;
@@ -1413,6 +1436,8 @@ function gameLoop() {
   drawQueueGhosts();
   drawPeers();
   if (mySpriteImg) drawCharacter(mySpriteImg, myX, myY, myDir, myWalking, myFrameIndex, myProfile.nickname, '', '__me', myProfile.gender);
+  updateSleepZs(Date.now());
+  drawSleepZs(myX, myY);
   requestAnimationFrame(gameLoop);
 }
 
@@ -1825,6 +1850,16 @@ document.addEventListener('keydown', (e) => {
 });
 document.addEventListener('keyup', (e) => keysDown.delete(e.key));
 
+// 활동 추적 (자고 있는 효과 해제용)
+['mousemove', 'mousedown', 'wheel', 'keydown'].forEach(ev =>
+  document.addEventListener(ev, bumpActivity)
+);
+window.addEventListener('focus', bumpActivity);
+
+// 창 최소화/복원 감지
+window.electronAPI.onWindowMinimized(() => { isMinimized = true; });
+window.electronAPI.onWindowRestored(() => { isMinimized = false; bumpActivity(); });
+
 // ══════════════════════════════════════
 // 버튼
 // ══════════════════════════════════════
@@ -1891,10 +1926,9 @@ async function init() {
     setTimeout(() => {
       sittingAtDesk = false;
       window.electronAPI.clearSavedSeat();
-      // 좌석 아래 칸을 목표로 자동 이동 시작
+      // 좌석 아래 칸을 목표로 한 칸 걸어나가기
       const below = { x: myX, y: myY + TILE };
       autoTarget = canMove(below.x, below.y) ? below : null;
-      if (!autoTarget) pickAutoTarget();
     }, 1000);
   }
 

@@ -519,6 +519,18 @@ function createRestWindow() {
 
   restWin.loadFile('rest.html');
 
+  // 최소화/복원 시 렌더러에 알림 (자고 있는 효과용)
+  restWin.on('minimize', () => {
+    if (restWin && !restWin.isDestroyed()) {
+      restWin.webContents.send('window-minimized');
+    }
+  });
+  restWin.on('restore', () => {
+    if (restWin && !restWin.isDestroyed()) {
+      restWin.webContents.send('window-restored');
+    }
+  });
+
   restWin.on('closed', () => {
     restWin = null;
     if (app.isQuitting) return;

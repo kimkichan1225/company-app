@@ -36,6 +36,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   expandWindow: () => ipcRenderer.send('expand-window'),
   shrinkWindow: () => ipcRenderer.send('shrink-window'),
 
+  // 창 최소화/복원 (자고 있는 효과용)
+  onWindowMinimized: (callback) => ipcRenderer.on('window-minimized', () => callback()),
+  onWindowRestored: (callback) => ipcRenderer.on('window-restored', () => callback()),
+
   // Socket.io 브리지 (main process에서 연결 유지)
   socketConnect: (joinData) => ipcRenderer.invoke('socket:connect', joinData),
   socketEmit: (event, data) => ipcRenderer.send('socket:emit', { event, data }),
