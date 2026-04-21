@@ -313,11 +313,11 @@ $hint.Location = New-Object System.Drawing.Point(20, 128)
 $hint.Size = New-Object System.Drawing.Size(430, 20)
 $form.Controls.Add($hint)
 
-# 완료 후 표시될 버튼들 (초기엔 숨김)
+# 완료 후 표시될 [재실행] 버튼 (초기엔 숨김)
 $btnRestart = New-Object System.Windows.Forms.Button
 $btnRestart.Text = '재실행'
 $btnRestart.Font = New-Object System.Drawing.Font('Segoe UI', 9, [System.Drawing.FontStyle]::Bold)
-$btnRestart.Location = New-Object System.Drawing.Point(240, 158)
+$btnRestart.Location = New-Object System.Drawing.Point(185, 158)
 $btnRestart.Size = New-Object System.Drawing.Size(100, 32)
 $btnRestart.FlatStyle = 'Flat'
 $btnRestart.FlatAppearance.BorderSize = 0
@@ -332,20 +332,6 @@ $btnRestart.Add_Click({
   $form.Close()
 })
 $form.Controls.Add($btnRestart)
-
-$btnClose = New-Object System.Windows.Forms.Button
-$btnClose.Text = '확인'
-$btnClose.Font = New-Object System.Drawing.Font('Segoe UI', 9)
-$btnClose.Location = New-Object System.Drawing.Point(350, 158)
-$btnClose.Size = New-Object System.Drawing.Size(100, 32)
-$btnClose.FlatStyle = 'Flat'
-$btnClose.FlatAppearance.BorderSize = 0
-$btnClose.BackColor = [System.Drawing.Color]::FromArgb(85, 85, 105)
-$btnClose.ForeColor = [System.Drawing.Color]::White
-$btnClose.Cursor = [System.Windows.Forms.Cursors]::Hand
-$btnClose.Visible = $false
-$btnClose.Add_Click({ $form.Close() })
-$form.Controls.Add($btnClose)
 
 function Update-UI($value, $text) {
   $bar.Value = [Math]::Min(100, [Math]::Max(0, $value))
@@ -423,9 +409,8 @@ try {
   Update-UI 100 '업데이트 완료!'
   $title.Text = '✓ 업데이트 완료'
   $title.ForeColor = [System.Drawing.Color]::FromArgb(46, 204, 113)
-  $hint.Text = '재실행을 누르면 새 버전으로 자동 시작됩니다.'
+  $hint.Text = '재실행을 누르면 새 버전으로 시작됩니다.'
   $btnRestart.Visible = $true
-  $btnClose.Visible = $true
   [System.Windows.Forms.Application]::DoEvents()
 
   Write-Log 'Update complete'
