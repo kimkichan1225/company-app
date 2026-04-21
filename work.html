@@ -185,7 +185,8 @@
     const isPantom = profile && profile.gender === 'pantom';
     const isCat3 = profile && profile.gender === 'cat3';
     const isDuck = profile && profile.gender === 'duck';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck;
+    const isKnight = profile && profile.gender === 'knight';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight;
     const isPng = svgText.startsWith('data:image/png');
     overrideIdleFrame(profile && profile.gender);
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -282,6 +283,25 @@
           cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
           cx.restore();
         }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; startAnimation(); };
+        fixed.src = cv.toDataURL();
+      } else if (isKnight) {
+        // 기사: row 0 col 3 ← flipped(row 0 col 1), 나머지 그대로
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const frameCv = document.createElement('canvas');
+        frameCv.width = fw; frameCv.height = fh;
+        const frameCx = frameCv.getContext('2d');
+        frameCx.imageSmoothingEnabled = false;
+        frameCx.save(); frameCx.translate(fw, 0); frameCx.scale(-1, 1);
+        frameCx.drawImage(cv, 1*fw, 0, fw, fh, 0, 0, fw, fh);
+        frameCx.restore();
+        cx.clearRect(3*fw, 0, fw, fh);
+        cx.drawImage(frameCv, 0, 0, fw, fh, 3*fw, 0, fw, fh);
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
