@@ -38,6 +38,10 @@
 
   .main { display: flex; height: calc(100% - 32px); }
 
+  /* 캐릭터 창 접힘 상태 */
+  .main.collapsed .map-area { display: none; }
+  .main.collapsed .side-panel { border-left: none; }
+
   /* 맵 */
   .map-area { flex: 1; position: relative; overflow: hidden; background: #222; }
   #mapCanvas { position: absolute; image-rendering: pixelated; }
@@ -207,6 +211,7 @@
     <span>Fit Character - 라운지</span>
   </div>
   <div class="titlebar-buttons">
+    <button id="btnToggleMap" title="캐릭터 창 접기">◀</button>
     <button id="btnMinimize">─</button>
     <button class="close" id="btnClose">✕</button>
   </div>
@@ -1922,6 +1927,52 @@ document.getElementById('btnMinimize').addEventListener('click', closeToWork);
 document.getElementById('btnProfile').addEventListener('click', () => openProfileModal());
 // Quit: 앱 종료 (소켓 해제)
 document.getElementById('btnQuit').addEventListener('click', () => { window.electronAPI.socketDisconnect(); window.electronAPI.quitApp(); });
+
+// ── 캐릭터 창 접기/펼치기 (localStorage 저장) ──
+(function setupMapToggle() {
+  const COLLAPSED_WIDTH = 260;
+  const DEFAULT_EXPANDED_WIDTH = 800;
+  const KEY_COLLAPSED = 'restMapCollapsed';
+  const KEY_EXPANDED_WIDTH = 'restExpandedWidth';
+
+  const mainEl = document.querySelector('.main');
+  const btn = document.getElementById('btnToggleMap');
+
+  function applyState(collapsed, resize) {
+    if (collapsed) {
+      mainEl.classList.add('collapsed');
+      btn.textContent = '▶';
+      btn.title = '캐릭터 창 펼치기';
+      if (resize) window.electronAPI.restSetWidth(COLLAPSED_WIDTH);
+    } else {
+      mainEl.classList.remove('collapsed');
+      btn.textContent = '◀';
+      btn.title = '캐릭터 창 접기';
+      if (resize) {
+        const saved = parseInt(localStorage.getItem(KEY_EXPANDED_WIDTH), 10);
+        const target = (saved && saved >= 400) ? saved : DEFAULT_EXPANDED_WIDTH;
+        window.electronAPI.restSetWidth(target);
+      }
+    }
+  }
+
+  btn.addEventListener('click', () => {
+    const currentlyCollapsed = mainEl.classList.contains('collapsed');
+    if (!currentlyCollapsed) {
+      // 접기 전 현재 너비 저장 (펼칠 때 복원용)
+      if (window.innerWidth > COLLAPSED_WIDTH) {
+        localStorage.setItem(KEY_EXPANDED_WIDTH, String(window.innerWidth));
+      }
+    }
+    const next = !currentlyCollapsed;
+    localStorage.setItem(KEY_COLLAPSED, next ? '1' : '0');
+    applyState(next, true);
+  });
+
+  // 초기 상태 복원
+  const initialCollapsed = localStorage.getItem(KEY_COLLAPSED) === '1';
+  applyState(initialCollapsed, initialCollapsed); // 접힌 상태일 때만 창 크기 축소
+})();
 
 // ══════════════════════════════════════
 // 초기화

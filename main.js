@@ -705,6 +705,16 @@ ipcMain.on('switch-mode', (event, mode) => {
   switchMode(mode);
 });
 
+// Rest 창 너비 조절 (캐릭터 창 접기/펼치기용)
+ipcMain.on('rest-set-width', (event, width) => {
+  const win = BrowserWindow.fromWebContents(event.sender);
+  if (win && !win.isDestroyed()) {
+    const [, h] = win.getSize();
+    const w = Math.max(260, Math.round(width));
+    win.setSize(w, h);
+  }
+});
+
 // ── socket bridge IPC ──
 ipcMain.handle('socket:connect', async (_, joinData) => {
   lastJoinData = joinData; // 재연결 대응용 캐시

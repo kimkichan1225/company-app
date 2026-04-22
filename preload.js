@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   expandWindow: () => ipcRenderer.send('expand-window'),
   shrinkWindow: () => ipcRenderer.send('shrink-window'),
 
+  // Rest 창 너비 직접 설정 (캐릭터 창 접기/펼치기)
+  restSetWidth: (width) => ipcRenderer.send('rest-set-width', width),
+
   // 창 최소화/복원 (자고 있는 효과용)
   onWindowMinimized: (callback) => ipcRenderer.on('window-minimized', () => callback()),
   onWindowRestored: (callback) => ipcRenderer.on('window-restored', () => callback()),
