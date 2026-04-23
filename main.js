@@ -844,6 +844,11 @@ ipcMain.handle('read-svg', async (event, gender) => {
   else if (g === 'bear') fileName = 'pixelated-cartoon-bear.png';
   else if (g === 'fox') fileName = 'pixelated-cartoon-fox.png';
   else if (g === 'kuromi') fileName = 'pixelated-cartoon-kuromi.png';
+  else if (g === 'boy2') fileName = 'pixelated-cartoon-boy2.png';
+  else if (g === 'rabbit2') fileName = 'pixelated-cartoon-rabbit2.png';
+  else if (g === 'racoon') fileName = 'pixelated-cartoon-racoon.png';
+  else if (g === 'owl') fileName = 'pixelated-cartoon-owl.png';
+  else if (g === 'lizard') fileName = 'pixelated-cartoon-lizard.png';
   else fileName = 'pixelated-cartoon-boy.svg';
   // PNG 파일은 base64 data URL로 반환
   if (fileName.endsWith('.png')) {
