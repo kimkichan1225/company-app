@@ -206,6 +206,7 @@
           <button class="gender-btn" id="btnRacoon" data-gender="racoon">🦝 라쿤</button>
           <button class="gender-btn" id="btnOwl" data-gender="owl">🦉 부엉이</button>
           <button class="gender-btn" id="btnLizard" data-gender="lizard">🦎 도마뱀</button>
+          <button class="gender-btn" id="btnPicnic" data-gender="picnic">🧺 피크닉</button>
         </div>
       </div>
 
@@ -441,7 +442,8 @@
     const isBoy2 = gender === 'boy2';
     const isOwl = gender === 'owl';
     const isLizard = gender === 'lizard';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard;
+    const isPicnic = gender === 'picnic';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard || isPicnic;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -783,6 +785,31 @@
           for (let c = 0; c < 4; c++) {
             cx.drawImage(img, c*fw, r*fh, fw, fh, c*64 + offsetX, r*96 + offsetY, newFW, newFH);
           }
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; };
+        fixed.src = cv.toDataURL();
+      } else if (isPicnic) {
+        // 피크닉: row 1 col 3 ← row 1 col 1 / row 3 (RIGHT) = row 2 프레임별 좌우반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        cx.clearRect(3*fw, 1*fh, fw, fh);
+        cx.drawImage(cv, 1*fw, 1*fh, fw, fh, 3*fw, 1*fh, fw, fh);
+        const tmp = document.createElement('canvas');
+        tmp.width = 4*fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 3*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
         }
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; };
