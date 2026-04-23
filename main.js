@@ -836,6 +836,14 @@ ipcMain.handle('read-svg', async (event, gender) => {
   else if (g === 'girl2') fileName = 'pixelated-cartoon-girl2.png';
   else if (g === 'knight') fileName = 'pixelated-cartoon-knight.png';
   else if (g === 'robot') fileName = 'pixelated-cartoon-robot.png';
+  else if (g === 'vampier') fileName = 'pixelated-cartoon-vampier.png';
+  else if (g === 'man2') fileName = 'pixelated-cartoon-man2.png';
+  else if (g === 'ninja') fileName = 'pixelated-cartoon-ninja.png';
+  else if (g === 'man3') fileName = 'pixelated-cartoon-man3.png';
+  else if (g === 'lirakkuma') fileName = 'pixelated-cartoon-lirakkuma.png';
+  else if (g === 'bear') fileName = 'pixelated-cartoon-bear.png';
+  else if (g === 'fox') fileName = 'pixelated-cartoon-fox.png';
+  else if (g === 'kuromi') fileName = 'pixelated-cartoon-kuromi.png';
   else fileName = 'pixelated-cartoon-boy.svg';
   // PNG 파일은 base64 data URL로 반환
   if (fileName.endsWith('.png')) {
@@ -876,9 +884,9 @@ function createSetupWindow() {
 
   setupWin = new BrowserWindow({
     width: 520,
-    height: 860,
+    height: 930,
     x: Math.floor((width - 520) / 2),
-    y: Math.floor((height - 860) / 2),
+    y: Math.floor((height - 930) / 2),
     frame: false,
     resizable: false,
     transparent: false,
