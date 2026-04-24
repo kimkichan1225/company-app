@@ -118,7 +118,7 @@
   // 캐릭터별 idle 프레임 오버라이드 (loadSprite에서 profile에 따라 설정)
   function overrideIdleFrame(gender) {
     // col 0 이 정지 포즈인 캐릭터는 RIGHT도 col 0 사용
-    if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime' || gender === 'cat2' || gender === 'rabbit' || gender === 'nezuco' || gender === 'cat3' || gender === 'duck' || gender === 'robot' || gender === 'vampier' || gender === 'man2' || gender === 'ninja' || gender === 'man3' || gender === 'lirakkuma' || gender === 'bear' || gender === 'kuromi' || gender === 'boy2' || gender === 'owl' || gender === 'lizard' || gender === 'picnic') {
+    if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime' || gender === 'cat2' || gender === 'rabbit' || gender === 'nezuco' || gender === 'cat3' || gender === 'duck' || gender === 'robot' || gender === 'vampier' || gender === 'man2' || gender === 'ninja' || gender === 'man3' || gender === 'lirakkuma' || gender === 'bear' || gender === 'kuromi' || gender === 'boy2' || gender === 'owl' || gender === 'lizard' || gender === 'picnic' || gender === 'pikachu2' || gender === 'mole' || gender === 'skeleton' || gender === 'fox2' || gender === 'bear2') {
       IDLE_FRAME[ROW_LEFT] = 0;
       IDLE_FRAME[ROW_RIGHT] = 0;
     } else if (gender === 'fox') {
@@ -204,7 +204,12 @@
     const isOwl = profile && profile.gender === 'owl';
     const isLizard = profile && profile.gender === 'lizard';
     const isPicnic = profile && profile.gender === 'picnic';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard || isPicnic;
+    const isPikachu2 = profile && profile.gender === 'pikachu2';
+    const isMole = profile && profile.gender === 'mole';
+    const isSkeleton = profile && profile.gender === 'skeleton';
+    const isFox2 = profile && profile.gender === 'fox2';
+    const isBear2 = profile && profile.gender === 'bear2';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard || isPicnic || isPikachu2 || isMole || isSkeleton || isFox2 || isBear2;
     const isPng = svgText.startsWith('data:image/png');
     overrideIdleFrame(profile && profile.gender);
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -558,6 +563,76 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
+      } else if (isFox2) {
+        // 여우2: 원본 row 3 col 0 좌우반전 → row 2 col 1, col 3 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const flipped = document.createElement('canvas');
+        flipped.width = fw; flipped.height = fh;
+        const fc = flipped.getContext('2d');
+        fc.imageSmoothingEnabled = false;
+        fc.save(); fc.translate(fw, 0); fc.scale(-1, 1);
+        fc.drawImage(cv, 0, 3*fh, fw, fh, 0, 0, fw, fh);
+        fc.restore();
+        cx.clearRect(1*fw, 2*fh, fw, fh);
+        cx.drawImage(flipped, 0, 0, fw, fh, 1*fw, 2*fh, fw, fh);
+        cx.clearRect(3*fw, 2*fh, fw, fh);
+        cx.drawImage(flipped, 0, 0, fw, fh, 3*fw, 2*fh, fw, fh);
+        const tmp = document.createElement('canvas');
+        tmp.width = 4*fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 3*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; startAnimation(); };
+        fixed.src = cv.toDataURL();
+      } else if (isPikachu2) {
+        // 피카츄2: 원본 row 3 col 2 좌우반전 → row 2 col 1, col 3 / row 2 col 2 ← row 2 col 0 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        const cx = cv.getContext('2d');
+        cx.imageSmoothingEnabled = false;
+        cx.drawImage(img, 0, 0);
+        const flipped = document.createElement('canvas');
+        flipped.width = fw; flipped.height = fh;
+        const fc = flipped.getContext('2d');
+        fc.imageSmoothingEnabled = false;
+        fc.save(); fc.translate(fw, 0); fc.scale(-1, 1);
+        fc.drawImage(cv, 2*fw, 3*fh, fw, fh, 0, 0, fw, fh);
+        fc.restore();
+        cx.clearRect(1*fw, 2*fh, fw, fh);
+        cx.drawImage(flipped, 0, 0, fw, fh, 1*fw, 2*fh, fw, fh);
+        cx.clearRect(3*fw, 2*fh, fw, fh);
+        cx.drawImage(flipped, 0, 0, fw, fh, 3*fw, 2*fh, fw, fh);
+        cx.clearRect(2*fw, 2*fh, fw, fh);
+        cx.drawImage(cv, 0, 2*fh, fw, fh, 2*fw, 2*fh, fw, fh);
+        const tmp = document.createElement('canvas');
+        tmp.width = 4*fw; tmp.height = fh;
+        const tx = tmp.getContext('2d');
+        tx.imageSmoothingEnabled = false;
+        tx.drawImage(cv, 0, 2*fh, 4*fw, fh, 0, 0, 4*fw, fh);
+        cx.clearRect(0, 3*fh, 4*fw, fh);
+        for (let c = 0; c < 4; c++) {
+          cx.save();
+          cx.translate((c+1)*fw, 3*fh);
+          cx.scale(-1, 1);
+          cx.drawImage(tmp, c*fw, 0, fw, fh, 0, 0, fw, fh);
+          cx.restore();
+        }
+        const fixed = new Image();
+        fixed.onload = () => { spriteImg = fixed; startAnimation(); };
+        fixed.src = cv.toDataURL();
       } else if (isOwl || isLizard) {
         // 부엉이/도마뱀: row 0 col 3 ← flipped(row 0 col 1) / row 3 (RIGHT) = row 2 프레임별 좌우반전
         const cv = document.createElement('canvas');
@@ -676,8 +751,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
-      } else if (isBear) {
-        // 곰: row 2 col 3 ← row 2 col 1 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
+      } else if (isBear || isSkeleton) {
+        // 곰/스켈레톤: row 2 col 3 ← row 2 col 1 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');
@@ -726,8 +801,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
-      } else if (isVampier || isMan2 || isNinja || isMan3) {
-        // 뱀파이어/남자3/닌자/남자4: row 3 (RIGHT) = row 2 (LEFT) 프레임별 좌우반전
+      } else if (isVampier || isMan2 || isNinja || isMan3 || isMole || isBear2) {
+        // 뱀파이어/남자3/닌자/남자4/두더지/곰2: row 3 (RIGHT) = row 2 (LEFT) 프레임별 좌우반전
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');
