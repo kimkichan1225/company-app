@@ -118,7 +118,7 @@
   // 캐릭터별 idle 프레임 오버라이드 (loadSprite에서 profile에 따라 설정)
   function overrideIdleFrame(gender) {
     // col 0 이 정지 포즈인 캐릭터는 RIGHT도 col 0 사용
-    if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime' || gender === 'cat2' || gender === 'rabbit' || gender === 'nezuco' || gender === 'cat3' || gender === 'duck' || gender === 'robot' || gender === 'vampier' || gender === 'man2' || gender === 'ninja' || gender === 'man3' || gender === 'lirakkuma' || gender === 'bear' || gender === 'kuromi' || gender === 'boy2' || gender === 'owl' || gender === 'lizard' || gender === 'picnic' || gender === 'pikachu2' || gender === 'mole' || gender === 'skeleton' || gender === 'fox2' || gender === 'bear2') {
+    if (gender === 'sprigatito' || gender === 'cat' || gender === 'slime' || gender === 'cat2' || gender === 'rabbit' || gender === 'nezuco' || gender === 'cat3' || gender === 'duck' || gender === 'robot' || gender === 'vampier' || gender === 'man2' || gender === 'ninja' || gender === 'man3' || gender === 'lirakkuma' || gender === 'bear' || gender === 'kuromi' || gender === 'boy2' || gender === 'owl' || gender === 'lizard' || gender === 'picnic' || gender === 'pikachu2' || gender === 'mole' || gender === 'skeleton' || gender === 'fox2' || gender === 'bear2' || gender === 'pikachu3') {
       IDLE_FRAME[ROW_LEFT] = 0;
       IDLE_FRAME[ROW_RIGHT] = 0;
     } else if (gender === 'fox') {
@@ -209,7 +209,8 @@
     const isSkeleton = profile && profile.gender === 'skeleton';
     const isFox2 = profile && profile.gender === 'fox2';
     const isBear2 = profile && profile.gender === 'bear2';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard || isPicnic || isPikachu2 || isMole || isSkeleton || isFox2 || isBear2;
+    const isPikachu3 = profile && profile.gender === 'pikachu3';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard || isPicnic || isPikachu2 || isMole || isSkeleton || isFox2 || isBear2 || isPikachu3;
     const isPng = svgText.startsWith('data:image/png');
     overrideIdleFrame(profile && profile.gender);
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -751,8 +752,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; startAnimation(); };
         fixed.src = cv.toDataURL();
-      } else if (isBear || isSkeleton) {
-        // 곰/스켈레톤: row 2 col 3 ← row 2 col 1 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
+      } else if (isBear || isSkeleton || isPikachu3) {
+        // 곰/스켈레톤/피카츄3: row 2 col 3 ← row 2 col 1 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');

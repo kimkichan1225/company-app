@@ -227,6 +227,7 @@
           <button class="gender-btn" id="btnSkeleton" data-gender="skeleton">💀 스켈레톤</button>
           <button class="gender-btn" id="btnFox2" data-gender="fox2">🦊 여우2</button>
           <button class="gender-btn" id="btnBear2" data-gender="bear2">🐻 곰2</button>
+          <button class="gender-btn" id="btnPikachu3" data-gender="pikachu3">⚡ 피카츄3</button>
         </div>
       </div>
 
@@ -502,7 +503,8 @@
     const isSkeleton = gender === 'skeleton';
     const isFox2 = gender === 'fox2';
     const isBear2 = gender === 'bear2';
-    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard || isPicnic || isPikachu2 || isMole || isSkeleton || isFox2 || isBear2;
+    const isPikachu3 = gender === 'pikachu3';
+    const isPokemon = isPikachu || isPsyduck || isCat || isSprigatito || isSlime || isCat2 || isRabbit || isNezuco || isCalcifer || isPantom || isCat3 || isDuck || isKnight || isRobot || isVampier || isMan2 || isNinja || isMan3 || isLirakkuma || isBear || isFox || isKuromi || isBoy2 || isOwl || isLizard || isPicnic || isPikachu2 || isMole || isSkeleton || isFox2 || isBear2 || isPikachu3;
     const isPng = originalSVG.startsWith('data:image/png');
     let svg = originalSVG;
     // 포켓몬/PNG는 색상 커스터마이징 스킵
@@ -1061,8 +1063,8 @@
         const fixed = new Image();
         fixed.onload = () => { spriteImg = fixed; };
         fixed.src = cv.toDataURL();
-      } else if (isBear || isSkeleton) {
-        // 곰/스켈레톤: row 2 col 3 ← row 2 col 1 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
+      } else if (isBear || isSkeleton || isPikachu3) {
+        // 곰/스켈레톤/피카츄3: row 2 col 3 ← row 2 col 1 / row 3 (RIGHT) = 수정된 row 2 프레임별 좌우반전
         const cv = document.createElement('canvas');
         cv.width = w; cv.height = h;
         const cx = cv.getContext('2d');

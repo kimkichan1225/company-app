@@ -855,6 +855,7 @@ ipcMain.handle('read-svg', async (event, gender) => {
   else if (g === 'skeleton') fileName = 'pixelated-cartoon-skeleton.png';
   else if (g === 'fox2') fileName = 'pixelated-cartoon-fox2.png';
   else if (g === 'bear2') fileName = 'pixelated-cartoon-bear2.png';
+  else if (g === 'pikachu3') fileName = 'pixelated-cartoon-pikachu3.png';
   else fileName = 'pixelated-cartoon-boy.svg';
   // PNG 파일은 base64 data URL로 반환
   if (fileName.endsWith('.png')) {
