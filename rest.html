@@ -207,6 +207,19 @@
   .modal-gender-grid::-webkit-scrollbar-track { background: #0f1520; border-radius: 4px; }
   .modal-gender-grid::-webkit-scrollbar-thumb { background: #3e4a6e; border-radius: 4px; }
   .modal-gender-grid::-webkit-scrollbar-thumb:hover { background: #5a6a9e; }
+
+  /* 모달 캐릭터 즐겨찾기 */
+  .modal-gender { position: relative; }
+  .modal-fav-star {
+    position: absolute; top: 2px; right: 4px;
+    font-size: 11px; line-height: 1; cursor: pointer;
+    opacity: 0.25; color: #888;
+    transition: opacity 0.15s, transform 0.1s, color 0.15s;
+    user-select: none; z-index: 2;
+  }
+  .modal-fav-star:hover { opacity: 0.9; transform: scale(1.25); }
+  .modal-gender.favorited .modal-fav-star { opacity: 1; color: #ffd93d; }
+  .modal-gender.favorited { border-color: #ffd93d !important; box-shadow: 0 0 0 1px rgba(255, 217, 61, 0.3); }
 </style>
 </head>
 <body>
@@ -2452,11 +2465,45 @@ document.getElementById('modalBubbleReset').addEventListener('click', () => {
   renderModalBubbleList();
 });
 
+// 즐겨찾기 (모달)
+let modalFavorites = [];
+function initModalFavoriteStars() {
+  document.querySelectorAll('.modal-gender').forEach(btn => {
+    if (btn.querySelector('.modal-fav-star')) return;
+    const star = document.createElement('span');
+    star.className = 'modal-fav-star';
+    star.textContent = '★';
+    star.title = '즐겨찾기';
+    star.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const g = btn.dataset.g;
+      const idx = modalFavorites.indexOf(g);
+      if (idx >= 0) modalFavorites.splice(idx, 1);
+      else modalFavorites.push(g);
+      applyModalFavorites();
+    });
+    btn.appendChild(star);
+  });
+}
+function applyModalFavorites() {
+  document.querySelectorAll('.modal-gender').forEach(btn => {
+    const g = btn.dataset.g;
+    const isFav = modalFavorites.includes(g);
+    btn.classList.toggle('favorited', isFav);
+    btn.style.order = isFav ? '-1' : '0';
+  });
+}
+
 function openProfileModal() {
   modalGender = myProfile.gender || 'boy';
   modalColors = { ...(myProfile.colors || {}) };
   document.getElementById('modalNickname').value = myProfile.nickname || '';
   document.getElementById('modalRealName').value = myProfile.realName || '';
+
+  // 즐겨찾기 초기화
+  initModalFavoriteStars();
+  modalFavorites = Array.isArray(myProfile.favoriteGenders) ? [...myProfile.favoriteGenders] : [];
+  applyModalFavorites();
 
   // 말풍선 메시지 초기화
   modalBubbleMessages = JSON.parse(JSON.stringify(DEFAULT_BUBBLE_MSGS));
@@ -2552,6 +2599,7 @@ document.getElementById('modalSave').addEventListener('click', async () => {
     cleanBubble[cat] = modalBubbleMessages[cat].filter(m => m.trim().length > 0);
   }
   myProfile.bubbleMessages = cleanBubble;
+  myProfile.favoriteGenders = [...modalFavorites];
   await window.electronAPI.saveProfile(myProfile);
 
   // 내 스프라이트 갱신
